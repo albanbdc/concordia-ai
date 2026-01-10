@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/**
+ * ✅ Auth / Users (NextAuth-ready)
+ * - email unique
+ * - passwordHash pour ton login/register email+mdp
+ * - modèles Account/Session/VerificationToken si tu utilises NextAuth
+ */
+model User {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  image         String?
+
+  // NextAuth relations
+  accounts      Account[]
+  sessions      Session[]
+
+  // Liaison optionnelle côté audits (si tu veux plus tard)
+  audits        Audit[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/**
+ * ✅ Audits
+ */
+model Audit {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  type               String
+  industrySector     String?
+  useCaseType        String?
+  internalDepartment String?
+
+  inputText          String
+  resultText         String
+
+  // 🔐 Traçabilité & sécurité avancée
+  events        AuditEvent[]
+  integrity     AuditIntegrity?
+  modelVersion  AuditVersion?
+
+  // 🔗 Plan d'action de conformité
+  complianceActions  ComplianceAction[]
+
+  // Traçabilité / intégrité simple
+  integrityHash String?
+  certified     Boolean    @default(false)
+  certifiedAt   DateTime?
+  certifiedBy   String?
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type      String
+  details   String?
+
+  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId   String
+}
+
+model AuditIntegrity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  hash      String
+  algorithm String   @default("SHA-256")
+
+  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId   String   @unique
+}
+
+model AuditVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  modelName    String
+  modelVersion String
+  apiProvider  String
+
+  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId      String   @unique
+}
+
+enum ComplianceStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model ComplianceAction {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId      String
+
+  // ✅ IMPORTANT :
+  // on les met REQUIRED avec des defaults -> Prisma peut ajouter les colonnes sans bloquer les lignes existantes
+  obligationId String   @default("unknown")
+  title        String
+  description  String?  // ✅ on laisse optionnel pour ne pas planter si DB contient déjà des NULL
+
+  priority     String   @default("MEDIUM") // "HIGH" | "MEDIUM" | "LOW"
+  owner        String   @default("CLIENT") // "CLIENT" | "CABINET"
+  status       ComplianceStatus @default(TODO)
+  source       String   @default("ENGINE") // "ENGINE"
+
+  @@index([auditId])
+}
