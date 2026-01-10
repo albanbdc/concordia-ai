@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
-import { prisma } from "../src/lib/prisma";
+import { prisma } from "../lib/prisma";
+
 
 async function main() {
   const email = "test@concordia.ai";
