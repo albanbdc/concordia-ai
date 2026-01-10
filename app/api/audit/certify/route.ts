@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { computeAuditHash } from "@/lib/auditIntegrity";
+import { computeAuditHash } from "@/lib/auditIntegrity.ts";
+
 
 export async function POST(req: Request) {
   let body: any;
