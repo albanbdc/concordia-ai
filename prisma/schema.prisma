@@ -14,36 +14,36 @@ datasource db {
  * - modèles Account/Session/VerificationToken si tu utilises NextAuth
  */
 model User {
-  id            String    @id @default(cuid())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  email         String    @unique
-  passwordHash  String?
-  name          String?
-  image         String?
+  email        String  @unique
+  passwordHash String?
+  name         String?
+  image        String?
 
   // NextAuth relations
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
 
   // Liaison optionnelle côté audits (si tu veux plus tard)
-  audits        Audit[]
+  audits Audit[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -74,32 +74,32 @@ model VerificationToken {
  * ✅ Audits
  */
 model Audit {
-  id                 String   @id @default(cuid())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId             String?
-  user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   type               String
   industrySector     String?
   useCaseType        String?
   internalDepartment String?
 
-  inputText          String
-  resultText         String
+  inputText  String
+  resultText String
 
   // 🔐 Traçabilité & sécurité avancée
-  events        AuditEvent[]
-  integrity     AuditIntegrity?
-  modelVersion  AuditVersion?
+  events       AuditEvent[]
+  integrity    AuditIntegrity?
+  modelVersion AuditVersion?
 
   // 🔗 Plan d'action de conformité
-  complianceActions  ComplianceAction[]
+  complianceActions ComplianceAction[]
 
   // Traçabilité / intégrité simple
   integrityHash String?
-  certified     Boolean    @default(false)
+  certified     Boolean   @default(false)
   certifiedAt   DateTime?
   certifiedBy   String?
 }
@@ -108,11 +108,11 @@ model AuditEvent {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
-  type      String
-  details   String?
+  type    String
+  details String?
 
-  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId   String
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId String
 }
 
 model AuditIntegrity {
@@ -120,10 +120,10 @@ model AuditIntegrity {
   createdAt DateTime @default(now())
 
   hash      String
-  algorithm String   @default("SHA-256")
+  algorithm String @default("SHA-256")
 
-  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId   String   @unique
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId String @unique
 }
 
 model AuditVersion {
@@ -134,8 +134,8 @@ model AuditVersion {
   modelVersion String
   apiProvider  String
 
-  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId      String   @unique
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId String @unique
 }
 
 enum ComplianceStatus {
@@ -145,23 +145,61 @@ enum ComplianceStatus {
 }
 
 model ComplianceAction {
-  id           String   @id @default(cuid())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId      String
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  auditId String
 
   // ✅ IMPORTANT :
   // on les met REQUIRED avec des defaults -> Prisma peut ajouter les colonnes sans bloquer les lignes existantes
-  obligationId String   @default("unknown")
+  obligationId String  @default("unknown")
   title        String
-  description  String?  // ✅ on laisse optionnel pour ne pas planter si DB contient déjà des NULL
+  description  String? // ✅ on laisse optionnel pour ne pas planter si DB contient déjà des NULL
 
-  priority     String   @default("MEDIUM") // "HIGH" | "MEDIUM" | "LOW"
-  owner        String   @default("CLIENT") // "CLIENT" | "CABINET"
-  status       ComplianceStatus @default(TODO)
-  source       String   @default("ENGINE") // "ENGINE"
+  priority String           @default("MEDIUM") // "HIGH" | "MEDIUM" | "LOW"
+  owner    String           @default("CLIENT") // "CLIENT" | "CABINET"
+  status   ComplianceStatus @default(TODO)
+  source   String           @default("ENGINE") // "ENGINE"
 
   @@index([auditId])
+}
+
+model UseCase {
+  id        String   @id @default(cuid())
+  key       String   @unique // ex: "justice__reconaissance-faciale"
+  sector    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  obligations UseCaseObligationState[]
+
+  @@index([sector])
+  @@index([title])
+}
+
+model UseCaseObligationState {
+  id String @id @default(cuid())
+
+  useCaseKey   String
+  obligationId String
+
+  status      String // "compliant" | "in-progress" | "non-compliant"
+  priority    String // "low" | "medium" | "high"
+  openActions Int    @default(0)
+
+  lastAuditId String?
+  lastAuditAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  useCase UseCase @relation(fields: [useCaseKey], references: [key], onDelete: Cascade)
+
+  @@unique([useCaseKey, obligationId])
+  @@index([obligationId])
+  @@index([status])
+  @@index([priority])
 }

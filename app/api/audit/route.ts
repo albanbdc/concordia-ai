@@ -1,4 +1,6 @@
 // app/api/audit/route.ts
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -9,10 +11,16 @@ import { interpretUseCaseWithLLM } from "@/domain/concordia/llm/interpretUseCase
 import { applyInterpretationGuards } from "@/domain/concordia/llm/applyInterpretationGuards";
 import { EMPTY_INTERPRETATION, type LlmInterpretation } from "@/domain/concordia/llm/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 /* ---------------- Utils ---------------- */
+
+function safeJsonParse<T = any>(raw: string | null | undefined): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
 
 function safeJsonStringify(obj: unknown) {
   try {
@@ -62,7 +70,6 @@ function buildFreeText(system: AiSystem): string {
   let text = parts.filter(Boolean).join("\n").trim();
 
   if (!text || text.length < 10) {
-    // fallback : on prend un mini résumé JSON
     try {
       const minimal = {
         systemName: (system as any)?.name ?? null,
@@ -111,18 +118,10 @@ function ruleBasedSignals(freeText: string): LlmInterpretation {
   const prohibited = hasFace && publicSpace && law;
 
   // RH / crédit / éducation : on force au moins high-risk si mention explicite
-  const hr =
-    t.includes("cv") ||
-    t.includes("recrut") ||
-    t.includes("candidat") ||
-    t.includes("entretien");
+  const hr = t.includes("cv") || t.includes("recrut") || t.includes("candidat") || t.includes("entretien");
 
   const credit =
-    t.includes("crédit") ||
-    t.includes("pret") ||
-    t.includes("prêt") ||
-    t.includes("scoring") ||
-    t.includes("octroi");
+    t.includes("crédit") || t.includes("pret") || t.includes("prêt") || t.includes("scoring") || t.includes("octroi");
 
   const education =
     t.includes("élève") ||
@@ -139,9 +138,7 @@ function ruleBasedSignals(freeText: string): LlmInterpretation {
     biometricSignal: hasFace,
     lawEnforcementSignal: law,
     vulnerablePersonsSignal: education,
-    justification: prohibited
-      ? "Règle : biométrie + espace public + forces de l’ordre."
-      : "",
+    justification: prohibited ? "Règle : biométrie + espace public + forces de l’ordre." : "",
   };
 }
 
@@ -156,7 +153,52 @@ function mergeFlags(a: LlmInterpretation, b: LlmInterpretation): LlmInterpretati
   };
 }
 
-/* ---------------- POST ---------------- */
+/* ---------------- GET (list audits) ---------------- */
+
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const limitParam = url.searchParams.get("limit");
+    const limit = Math.min(Math.max(Number(limitParam || 200), 1), 500);
+
+    const rows = await prisma.audit.findMany({
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        type: true,
+        createdAt: true,
+        updatedAt: true,
+        industrySector: true,
+        useCaseType: true,
+        internalDepartment: true,
+        inputText: true,
+        resultText: true,
+      },
+    });
+
+    const audits = rows.map((a) => ({
+      id: a.id,
+      type: a.type,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+      industrySector: a.industrySector,
+      useCaseType: a.useCaseType,
+      internalDepartment: a.internalDepartment,
+      input: safeJsonParse(a.inputText),
+      result: safeJsonParse(a.resultText),
+    }));
+
+    return NextResponse.json({ ok: true, audits }, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: "Erreur serveur.", details: e?.message || String(e) },
+      { status: 500 }
+    );
+  }
+}
+
+/* ---------------- POST (run audit) ---------------- */
 
 export async function POST(req: Request) {
   const requestId =
@@ -217,10 +259,8 @@ export async function POST(req: Request) {
 
   // 9) Save
   try {
-    const sector =
-      system?.useCases?.[0]?.sector != null ? String(system.useCases[0].sector) : null;
-    const useCaseName =
-      system?.useCases?.[0]?.name != null ? String(system.useCases[0].name) : null;
+    const sector = system?.useCases?.[0]?.sector != null ? String(system.useCases[0].sector) : null;
+    const useCaseName = system?.useCases?.[0]?.name != null ? String(system.useCases[0].name) : null;
 
     const audit = await prisma.audit.create({
       data: {
