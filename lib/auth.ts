@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import type { NextAuthOptions } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
+
+  pages: {
+    signIn: "/login",
+  },
+
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -18,11 +25,15 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            passwordHash: true,
+            organizationId: true,
+          },
         });
 
         if (!user) return null;
-
-        // ✅ FIX CRITIQUE ICI
         if (!user.passwordHash) return null;
 
         const ok = await bcrypt.compare(
@@ -35,6 +46,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
+          organizationId: user.organizationId,
         };
       },
     }),
@@ -47,13 +59,16 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = (user as any).id;
+        token.organizationId = (user as any).organizationId;
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        (session.user as any).id = token.id as string;
+        (session.user as any).organizationId = token.organizationId;
       }
       return session;
     },

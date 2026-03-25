@@ -14,11 +14,6 @@ import type { Obligation } from "./types";
  *  - robustness-security    -> Art. 15
  *  - post-market            -> Art. 61–62
  *  - role-obligations       -> Art. 16–29 (selon rôle)
- *
- * Objectif :
- * - garder simple et concret
- * - augmenter la crédibilité (≈ 22 obligations)
- * - permettre un score 0–100 normalisé sur les obligations applicables
  */
 
 export const BASE_OBLIGATIONS: Obligation[] = [
@@ -33,7 +28,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Définir une organisation et un processus de gestion des risques (identification, mitigation, revue) sur tout le cycle de vie.",
     category: "risk-management",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "rm-1",
@@ -42,7 +37,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Identifier les risques (droits, sécurité, biais, dérives), estimer leur gravité/probabilité et documenter les mesures de réduction.",
     category: "risk-management",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "rm-2",
@@ -51,7 +46,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Revoir régulièrement le risque et l’efficacité des contrôles (à chaque changement majeur et à périodicité définie).",
     category: "risk-management",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -65,7 +60,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en place des pratiques de gouvernance des données (qualité, pertinence, biais, représentativité) adaptées au cas d’usage.",
     category: "data-governance",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "dg-1",
@@ -74,7 +69,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Documenter les sources, transformations, versions de datasets et règles de préparation (traçabilité bout-en-bout).",
     category: "data-governance",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "dg-2",
@@ -83,7 +78,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Effectuer des tests de biais et de représentativité, documenter les résultats et appliquer des actions correctives si nécessaire.",
     category: "data-governance",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -97,7 +92,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Constituer et maintenir une documentation technique pertinente et des mécanismes de traçabilité (y compris logs lorsque requis).",
     category: "documentation",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "doc-2",
@@ -106,7 +101,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Documenter le périmètre, les limites, les hypothèses, les données utilisées et les conditions d’usage prévues.",
     category: "documentation",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "log-1",
@@ -115,7 +110,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en place des logs d’usage/événements permettant audit, analyse d’incident et détection de dérives (selon le contexte).",
     category: "documentation",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -129,7 +124,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Fournir des informations claires sur le fonctionnement, les limites, les instructions d’usage et les conditions de déploiement appropriées.",
     category: "transparency",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "tra-2",
@@ -138,7 +133,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Rendre disponible une notice opérationnelle (comment utiliser, limites, quand escalader, exemples d’erreurs typiques).",
     category: "transparency",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -152,7 +147,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Prévoir des mesures permettant une supervision humaine effective (capacité d’intervenir, d’annuler, de comprendre et d’encadrer l’usage).",
     category: "human-oversight",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "ho-1",
@@ -161,7 +156,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Assurer qu’un humain peut annuler/contester la décision et que le workflow d’intervention est défini (seuils, alertes, responsabilités).",
     category: "human-oversight",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -175,7 +170,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en œuvre des exigences de robustesse, d’exactitude, de résilience et de cybersécurité adaptées au risque et au contexte de déploiement.",
     category: "robustness-security",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "rs-1",
@@ -184,7 +179,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Définir des métriques (accuracy, taux d’erreur, faux positifs/négatifs) et un seuil d’acceptation ; suivre dans le temps.",
     category: "robustness-security",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "rs-2",
@@ -193,7 +188,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Contrôles de sécurité (accès, secrets, durcissement, journalisation sécurité) et mesures de protection contre usages malveillants.",
     category: "robustness-security",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
@@ -207,7 +202,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en place une surveillance après mise sur le marché/déploiement, et un processus de remontée/gestion des incidents graves lorsque applicable.",
     category: "post-market",
     weight: 4,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "pm-1",
@@ -216,7 +211,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Surveiller les dérives (data drift, performance drift) et déclencher des alertes ; tenir un registre des anomalies.",
     category: "post-market",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
   {
     id: "pm-2",
@@ -225,14 +220,13 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Runbook incident : qui fait quoi, délais, actions immédiates, communication interne, analyse post-mortem.",
     category: "post-market",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider", "deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider", "deployer"] },
   },
 
   // =========================================================
   // Art. 16–29 — Role obligations (provider vs deployer)
   // =========================================================
 
-  // Provider-focused
   {
     id: "prov-1",
     label: "Mettre en place un système de gestion de la qualité (provider)",
@@ -240,7 +234,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Disposer d’un système de gestion de la qualité couvrant conception, développement, tests, documentation, changements (obligation provider).",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider"] },
   },
   {
     id: "prov-2",
@@ -249,7 +243,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en œuvre les démarches de conformité applicables avant mise sur le marché (préparation de la documentation et vérifications).",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider"] },
   },
   {
     id: "prov-3",
@@ -258,10 +252,41 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Contrôle des changements : versioning, validation, déploiement contrôlé et capacité de rollback pour maintenir la conformité.",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["provider"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["provider"] },
   },
 
-  // Deployer-focused
+  // =========================================================
+  // LIMITED RISK — Art. 50
+  // =========================================================
+
+  {
+    id: "lim-1",
+    label: "Informer l’utilisateur qu’il interagit avec une IA",
+    description:
+      "Lorsque pertinent (chatbot, assistant automatisé…), informer clairement la personne qu’elle interagit avec un système d’IA (Art. 50).",
+    category: "transparency",
+    weight: 2,
+    appliesTo: { riskLevels: ["LIMITED"], roles: ["provider", "deployer"] },
+  },
+  {
+    id: "lim-2",
+    label: "Informer en cas de génération de contenu synthétique (deepfake)",
+    description:
+      "En cas de génération ou manipulation de contenu synthétique, informer clairement les utilisateurs que le contenu est généré par IA (Art. 50).",
+    category: "transparency",
+    weight: 2,
+    appliesTo: { riskLevels: ["LIMITED"], roles: ["provider", "deployer"] },
+  },
+  {
+    id: "lim-3",
+    label: "Informer sur l’usage de reconnaissance d’émotions ou biométrie",
+    description:
+      "Informer les personnes concernées lorsque des systèmes d’analyse émotionnelle ou biométrique sont utilisés (Art. 50).",
+    category: "transparency",
+    weight: 2,
+    appliesTo: { riskLevels: ["LIMITED"], roles: ["provider", "deployer"] },
+  },
+
   {
     id: "dep-1",
     label: "Assurer une utilisation conforme aux instructions (deployer)",
@@ -269,7 +294,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Déployer et utiliser le système conformément aux instructions du provider, au périmètre prévu et aux conditions d’usage appropriées.",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["deployer"] },
   },
   {
     id: "dep-2",
@@ -278,7 +303,7 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Mettre en place la supervision humaine adaptée au contexte réel de déploiement (formation, procédures, escalade, override).",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["deployer"] },
   },
   {
     id: "dep-3",
@@ -287,13 +312,10 @@ export const BASE_OBLIGATIONS: Obligation[] = [
       "Surveiller les performances en usage réel et signaler / remonter les incidents graves selon les procédures applicables.",
     category: "role-obligations",
     weight: 3,
-    appliesTo: { systemStatuses: ["high-risk"], roles: ["deployer"] },
+    appliesTo: { riskLevels: ["HIGH"], roles: ["deployer"] },
   },
 ];
 
-/**
- * Helper : index par id
- */
 export const OBLIGATIONS_BY_ID: Record<string, Obligation> = Object.fromEntries(
   BASE_OBLIGATIONS.map((o) => [o.id, o])
 );

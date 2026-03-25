@@ -1,0 +1,7 @@
+-- CreateEnum
+CREATE TYPE "AnnexCategory" AS ENUM ('EMPLOYMENT', 'EDUCATION', 'ESSENTIAL_SERVICES', 'JUSTICE', 'LAW_ENFORCEMENT', 'MIGRATION', 'CRITICAL_INFRASTRUCTURE');
+
+-- AlterTable
+ALTER TABLE "UseCase" ADD COLUMN     "annexCategory" "AnnexCategory",
+ADD COLUMN     "isProhibited" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "requiresTransparency" BOOLEAN NOT NULL DEFAULT false;

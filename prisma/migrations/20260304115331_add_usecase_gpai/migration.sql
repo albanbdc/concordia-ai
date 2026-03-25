@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "UseCase" ADD COLUMN     "isGPAI" BOOLEAN NOT NULL DEFAULT false;

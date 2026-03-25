@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -9,61 +12,80 @@ function isEmailValid(email: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const emailRaw = String(body?.email ?? "");
-    const passwordRaw = String(body?.password ?? "");
 
-    const email = emailRaw.toLowerCase().trim();
-    const password = passwordRaw.trim();
+    const { token, orgName, sector, size, contactName } = body;
+    const email = String(body?.email ?? "").toLowerCase().trim();
+    const password = String(body?.password ?? "").trim();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { ok: false, error: "Email et mot de passe requis." },
-        { status: 400 }
-      );
+    // Validation champs requis
+    if (!token || !orgName || !contactName || !email || !password) {
+      return NextResponse.json({ ok: false, error: "MISSING_FIELDS" }, { status: 400 });
     }
 
     if (!isEmailValid(email)) {
-      return NextResponse.json(
-        { ok: false, error: "Email invalide." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Email invalide." }, { status: 400 });
     }
 
     if (password.length < 8) {
-      return NextResponse.json(
-        { ok: false, error: "Mot de passe trop court (min 8 caractères)." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "PASSWORD_TOO_SHORT" }, { status: 400 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json(
-        { ok: false, error: "Un compte existe déjà avec cet email." },
-        { status: 409 }
-      );
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-      },
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-      },
+    // Vérification token
+    const invitation = await prisma.invitation.findUnique({
+      where: { token },
     });
 
-    return NextResponse.json({ ok: true, user }, { status: 201 });
+    if (!invitation || invitation.used || new Date() > invitation.expiresAt) {
+      return NextResponse.json({ ok: false, error: "TOKEN_INVALID" }, { status: 400 });
+    }
+
+    // Vérification email unique
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return NextResponse.json({ ok: false, error: "EMAIL_TAKEN" }, { status: 409 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // Création organisation + user en transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: {
+          name: orgName,
+          sector: sector || null,
+          size: size || null,
+          contactName,
+        },
+      });
+
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          name: contactName,
+          organizationId: organization.id,
+        },
+      });
+
+      await tx.invitation.update({
+        where: { token },
+        data: {
+          used: true,
+          usedAt: new Date(),
+          organizationId: organization.id,
+        },
+      });
+
+      return { organization, user };
+    });
+
+    return NextResponse.json({
+      ok: true,
+      userId: result.user.id,
+      organizationId: result.organization.id,
+    }, { status: 201 });
   } catch (e: any) {
     console.error("[POST /api/register] error:", e);
-    return NextResponse.json(
-      { ok: false, error: "Erreur serveur.", details: e?.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "INTERNAL_ERROR", details: e?.message }, { status: 500 });
   }
 }

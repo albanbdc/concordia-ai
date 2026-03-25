@@ -27,21 +27,73 @@ export function runEngine(
   const generatedAt = new Date().toISOString();
 
   const systemStatusEval = evaluateSystemStatus(system);
+    const qualificationPath: string[] = [];
+  const engineDecisionLog: string[] = [];
+  const legalBasis: string[] = [];
+
+  engineDecisionLog.push("ENGINE START v4.0.0");
+  engineDecisionLog.push(`System analysed: ${system.name}`);
+  engineDecisionLog.push(`SystemStatus detected: ${systemStatusEval.status}`);
   const systemStatus = systemStatusEval.status;
   const statusReason = systemStatusEval.reason;
   const systemRiskReasons = systemStatusEval.reasons;
+  
 
   // Build use case audits
   const useCases: UseCaseAudit[] = (system.useCases || []).map((uc) =>
     auditUseCase(system, uc, systemStatus, obligations, fulfillments)
   );
+  for (const uc of useCases) {
+    qualificationPath.push(
+      `UseCase "${uc.useCaseName}" → RiskLevel = ${uc.riskLevel}`
+    );
 
+    if (uc.riskLevel === "UNACCEPTABLE") {
+      legalBasis.push("AIAct:Art5");
+      engineDecisionLog.push(
+        `Art.5 triggered on ${uc.useCaseName}`
+      );
+    }
+
+    if (uc.riskLevel === "HIGH") {
+      legalBasis.push("AIAct:AnnexIII");
+      engineDecisionLog.push(
+        `Annex III triggered on ${uc.useCaseName}`
+      );
+    }
+
+    if (uc.riskLevel === "LIMITED") {
+      legalBasis.push("AIAct:Art50");
+      engineDecisionLog.push(
+        `Transparency obligations (Art.50) triggered on ${uc.useCaseName}`
+      );
+    }
+  }
   // Score = compliance maturity over applicable obligations (dedup by obligationId)
   const score = computeComplianceScore(useCases, fulfillments);
 
   // Risk tier: separate from compliance score (simple + stable)
   const riskTier = computeRiskTier(systemStatus, score.overallScore);
+  const uniqueLegal = Array.from(new Set(legalBasis));
 
+let justification: string;
+
+if (uniqueLegal.includes("AIAct:Art5")) {
+  justification =
+    "Qualification UNACCEPTABLE fondée sur l’Article 5 de l’AI Act : pratique interdite détectée.";
+} 
+else if (uniqueLegal.includes("AIAct:AnnexIII")) {
+  justification =
+    "Qualification HIGH RISK fondée sur l’Annexe III de l’AI Act : le système opère dans un domaine explicitement listé comme à haut risque.";
+} 
+else if (uniqueLegal.includes("AIAct:Art50")) {
+  justification =
+    "Qualification LIMITED fondée sur l’Article 50 de l’AI Act : obligations de transparence applicables.";
+} 
+else {
+  justification =
+    "Qualification MINIMAL : aucun critère Article 5, Annexe III ou Article 50 activé sur la base des informations fournies.";
+}
   const result: any = {
     systemId: system.id,
     systemName: system.name,
@@ -51,6 +103,10 @@ export function runEngine(
     riskTier,
     statusReason,
     systemRiskReasons,
+        legalBasis: Array.from(new Set(legalBasis)),
+    qualificationPath,
+    justification,
+    engineDecisionLog,
     useCases,
     score,
     meta: {
@@ -164,21 +220,29 @@ function prohibitedFlags(uc: AiUseCase): string[] {
 
 function highRiskFlags(uc: AiUseCase): string[] {
   const reasons: string[] = [];
-  // Annex III flags (your boolean fields)
-  if (uc.isEmploymentUseCase || uc.sector === "employment" || uc.sector === "hr")
-    reasons.push("Cas d’usage relevant de l’emploi (Annexe III).");
-  if (uc.isEducationUseCase || uc.sector === "education")
-    reasons.push("Cas d’usage relevant de l’éducation (Annexe III).");
-  if (uc.isJusticeUseCase || uc.sector === "justice") reasons.push("Cas d’usage relevant de la justice (Annexe III).");
-  if (uc.isLawEnforcementUseCase || uc.sector === "law-enforcement")
-    reasons.push("Cas d’usage relevant des forces de l’ordre (Annexe III).");
-  if (uc.isMigrationUseCase || uc.sector === "migration") reasons.push("Cas d’usage relevant de la migration (Annexe III).");
-  if (uc.isCriticalInfrastructure || uc.sector === "critical-infra")
-    reasons.push("Cas d’usage relevant d’infrastructures critiques (Annexe III).");
-  if (uc.isAccessToEssentialServices || uc.sector === "services")
-    reasons.push("Cas d’usage lié à l’accès à des services essentiels (Annexe III).");
-  if (uc.sector === "health") reasons.push("Cas d’usage en santé (risque élevé probable).");
-  if (uc.sector === "finance") reasons.push("Cas d’usage en finance (risque élevé probable).");
+
+  // STRICT ANNEX III LOGIC
+  if (uc.isEmploymentUseCase)
+    reasons.push("Système relevant de l’emploi (Annexe III AI Act).");
+
+  if (uc.isEducationUseCase)
+    reasons.push("Système relevant de l’éducation (Annexe III AI Act).");
+
+  if (uc.isJusticeUseCase)
+    reasons.push("Système relevant de la justice (Annexe III AI Act).");
+
+  if (uc.isLawEnforcementUseCase)
+    reasons.push("Système relevant des forces de l’ordre (Annexe III AI Act).");
+
+  if (uc.isMigrationUseCase)
+    reasons.push("Système relevant de la migration / frontières (Annexe III AI Act).");
+
+  if (uc.isCriticalInfrastructure)
+    reasons.push("Système relevant d’infrastructures critiques (Annexe III AI Act).");
+
+  if (uc.isAccessToEssentialServices)
+    reasons.push("Système lié à l’accès à des services essentiels (Annexe III AI Act).");
+
   return reasons;
 }
 
@@ -197,7 +261,14 @@ function auditUseCase(
 
   const { criticalityScore, criticalityLevel, criticalityReasons } = evaluateCriticality(uc);
 
-  const appliedObligations = applyObligations(system, uc, systemStatus, obligations, fulfillments);
+  const appliedObligations = applyObligations(
+  system,
+  uc,
+  systemStatus,
+  riskLevel,
+  obligations,
+  fulfillments
+);
 
   return {
     useCaseId: uc.id,
@@ -211,39 +282,54 @@ function auditUseCase(
   };
 }
 
-function evaluateUseCaseRisk(uc: AiUseCase, systemStatus: SystemStatus): { riskLevel: RiskLevel; riskReasons: string[] } {
-  const reasons: string[] = [];
+function evaluateUseCaseRisk(
+  uc: AiUseCase,
+  systemStatus: SystemStatus
+): { riskLevel: RiskLevel; riskReasons: string[] } {
 
-  // prohibited overrides
+  // 1️⃣ UNACCEPTABLE (Article 5)
   const prohib = prohibitedFlags(uc);
   if (prohib.length > 0 || systemStatus === "prohibited") {
     return {
-      riskLevel: "high",
-      riskReasons: Array.from(new Set(["Pratique interdite détectée (Article 5).", ...prohib])),
+      riskLevel: "UNACCEPTABLE",
+      riskReasons: Array.from(
+        new Set([
+          "Le cas d’usage relève d’une pratique interdite (Article 5 AI Act).",
+          ...prohib,
+        ])
+      ),
     };
   }
 
+  // 2️⃣ HIGH (Annexe III strict)
   const high = highRiskFlags(uc);
   if (high.length > 0 || systemStatus === "high-risk") {
-    reasons.push("Le cas d’usage relève d’un domaine listé comme haut risque dans l’Annexe III de l’IA Act.");
-    if (uc.affectsRights) reasons.push("Le cas d’usage peut affecter directement les droits fondamentaux des personnes concernées.");
-    if (uc.vulnerableGroups) reasons.push("Le cas d’usage implique des groupes vulnérables, ce qui renforce le niveau de risque.");
-    if (uc.biometric) reasons.push("Le cas d’usage implique des éléments biométriques, facteur aggravant.");
-    return { riskLevel: "high", riskReasons: Array.from(new Set([...high, ...reasons])) };
+    return {
+      riskLevel: "HIGH",
+      riskReasons: Array.from(new Set(high)),
+    };
   }
 
-  // limited vs minimal (simple heuristic)
-  if (uc.affectsRights || uc.vulnerableGroups || uc.biometric) {
+  // 3️⃣ LIMITED (Article 50 – transparence)
+  if (uc.usesChatbot || uc.usesEmotionRecognition || uc.isDeepfake) {
     return {
-      riskLevel: "limited",
+      riskLevel: "LIMITED",
       riskReasons: [
-        "Le cas d’usage présente des facteurs de risque (droits / vulnérabilités / biométrie), sans critère high-risk explicitement activé.",
+        "Système soumis à des obligations de transparence (Article 50 AI Act).",
       ],
     };
   }
 
-  return { riskLevel: "minimal", riskReasons: ["Aucun facteur de risque majeur identifié à partir des champs fournis."] };
+  // 4️⃣ MINIMAL
+  return {
+    riskLevel: "MINIMAL",
+    riskReasons: [
+      "Aucun critère Article 5, Annexe III ou Article 50 détecté.",
+    ],
+  };
 }
+
+
 
 function evaluateCriticality(uc: AiUseCase): {
   criticalityScore: number;
@@ -296,37 +382,79 @@ function applyObligations(
   system: AiSystem,
   uc: AiUseCase,
   systemStatus: SystemStatus,
+  ucRiskLevel: RiskLevel,
   obligations: Obligation[],
   fulfillments?: Fulfillments
 ): AppliedObligation[] {
+
   const role: Role = system.role;
 
-  const applicable = obligations.filter((o) => {
-    const a = o.appliesTo || {};
+  // 🔴 UNACCEPTABLE → aucune obligation
+  if (ucRiskLevel === "UNACCEPTABLE") {
+    return [];
+  }
 
-    if (a.systemStatuses && !a.systemStatuses.includes(systemStatus)) return false;
-    if (a.roles && !a.roles.includes(role)) return false;
+  // 🟢 MINIMAL → aucune obligation IA Act
+  if (ucRiskLevel === "MINIMAL") {
+    return [];
+  }
 
-    if (a.sectors && !a.sectors.includes(uc.sector)) return false;
-    if (a.entityTypes && system.entityType && !a.entityTypes.includes(system.entityType)) return false;
+  // 🟡 LIMITED → uniquement transparence (Article 50)
+  if (ucRiskLevel === "LIMITED") {
+    const transparencyOnly = obligations.filter(
+      (o) => o.category === "transparency"
+    );
 
-    return true;
-  });
+    return transparencyOnly.map((o) => {
+      const fulfilledVal = fulfillments?.[o.id];
+      const fulfilled =
+        typeof fulfilledVal === "boolean" ? fulfilledVal : null;
 
-  return applicable.map((o) => {
-    const fulfilledVal = fulfillments?.[o.id];
-    const fulfilled: boolean | null = typeof fulfilledVal === "boolean" ? fulfilledVal : null;
+      return {
+        obligationId: o.id,
+        label: o.label,
+        category: o.category,
+        weight: o.weight,
+        fulfilled,
+        estimatedCompliance: estimateCompliance(systemStatus, fulfilled),
+        complianceReason: estimateReason(systemStatus, fulfilled),
+      };
+    });
+  }
 
-    return {
-      obligationId: o.id,
-      label: o.label,
-      category: o.category,
-      weight: o.weight,
-      fulfilled,
-      estimatedCompliance: estimateCompliance(systemStatus, fulfilled),
-      complianceReason: estimateReason(systemStatus, fulfilled),
-    };
-  });
+  // 🟠 HIGH → toutes obligations (core + advanced + role selon rôle)
+  if (ucRiskLevel === "HIGH") {
+
+    const applicable = obligations.filter((o) => {
+
+      // Si obligation de rôle → vérifier rôle
+      if (o.category === "role-obligations") {
+        if (o.appliesTo?.roles && !o.appliesTo.roles.includes(role)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return applicable.map((o) => {
+      const fulfilledVal = fulfillments?.[o.id];
+      const fulfilled =
+        typeof fulfilledVal === "boolean" ? fulfilledVal : null;
+
+      return {
+        obligationId: o.id,
+        label: o.label,
+        category: o.category,
+        weight: o.weight,
+        fulfilled,
+        estimatedCompliance: estimateCompliance(systemStatus, fulfilled),
+        complianceReason: estimateReason(systemStatus, fulfilled),
+      };
+    });
+  }
+
+  return [];
 }
 
 function estimateCompliance(systemStatus: SystemStatus, fulfilled: boolean | null): "likely" | "uncertain" | "unlikely" {
@@ -400,14 +528,28 @@ function computeComplianceScore(useCases: UseCaseAudit[], fulfillments?: Fulfill
   };
 }
 
-function computeRiskTier(systemStatus: SystemStatus, complianceScore: number): "LOW" | "MEDIUM" | "HIGH" | "EXTREME" {
-  if (systemStatus === "prohibited") return "EXTREME";
+function computeRiskTier(
+  systemStatus: SystemStatus,
+  complianceScore: number
+): "LOW" | "MEDIUM" | "HIGH" | "EXTREME" {
+
+  if (systemStatus === "prohibited") {
+    return "EXTREME";
+  }
+
   if (systemStatus === "high-risk") {
-    if (complianceScore >= 70) return "LOW";
-    if (complianceScore >= 40) return "MEDIUM";
+    if (complianceScore >= 80) return "LOW";
+    if (complianceScore >= 50) return "MEDIUM";
     return "HIGH";
   }
-  if (systemStatus === "gpai-systemic") return "HIGH";
-  if (systemStatus === "gpai") return "MEDIUM";
+
+  if (systemStatus === "gpai-systemic") {
+    return "HIGH";
+  }
+
+  if (systemStatus === "gpai") {
+    return "MEDIUM";
+  }
+
   return "LOW";
 }

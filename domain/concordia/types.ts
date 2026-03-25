@@ -21,7 +21,7 @@ export type Sector =
 export type Role = "provider" | "deployer";
 export type EntityType = Role;
 
-export type RiskLevel = "minimal" | "limited" | "high";
+export type RiskLevel = "UNACCEPTABLE" | "HIGH" | "LIMITED" | "MINIMAL";
 
 export type SystemStatus =
   | "normal"
@@ -299,6 +299,12 @@ export interface EngineResult {
 
   statusReason: string;
   systemRiskReasons: string[];
+
+  // ✅ NOUVEAU — Opposabilité moteur
+  legalBasis: string[]; // ex: ["AIAct:Art5", "AIAct:AnnexIII", "AIAct:Art50"]
+  qualificationPath: string[]; // arbre décisionnel suivi
+  justification: string; // résumé juridique consolidé
+  engineDecisionLog: string[]; // log complet des étapes moteur
 
   useCases: UseCaseAudit[];
 

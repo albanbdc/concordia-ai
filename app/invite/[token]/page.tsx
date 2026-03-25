@@ -1,0 +1,293 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+
+const SECTORS = [
+  "Finance", "Assurance", "Santé", "Éducation", "Industrie",
+  "Transport", "Énergie", "Retail", "Tech", "Juridique",
+  "Secteur public", "Immobilier", "Autre",
+];
+
+const SIZES = ["TPE", "PME", "ETI", "Grand groupe"];
+
+export default function InvitePage() {
+  const params = useParams();
+  const router = useRouter();
+  const token = params?.token as string;
+
+  const [checking, setChecking] = useState(true);
+  const [tokenValid, setTokenValid] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [prefillEmail, setPrefillEmail] = useState("");
+
+  // Formulaire
+  const [orgName, setOrgName] = useState("");
+  const [sector, setSector] = useState("");
+  const [size, setSize] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    fetch(`/api/invite?token=${token}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.ok) {
+          setTokenValid(true);
+          if (data.email) {
+            setEmail(data.email);
+            setPrefillEmail(data.email);
+          }
+        } else {
+          if (data.error === "TOKEN_USED") setTokenError("Ce lien d'invitation a déjà été utilisé.");
+          else if (data.error === "TOKEN_EXPIRED") setTokenError("Ce lien d'invitation a expiré.");
+          else setTokenError("Ce lien d'invitation est invalide.");
+        }
+      })
+      .catch(() => setTokenError("Erreur lors de la vérification du lien."))
+      .finally(() => setChecking(false));
+  }, [token]);
+
+  async function handleSubmit() {
+    setError(null);
+
+    if (!orgName.trim()) return setError("Le nom de l'organisation est requis.");
+    if (!contactName.trim()) return setError("Le nom du référent est requis.");
+    if (!email.trim()) return setError("L'email est requis.");
+    if (!password) return setError("Le mot de passe est requis.");
+    if (password.length < 8) return setError("Le mot de passe doit contenir au moins 8 caractères.");
+    if (password !== passwordConfirm) return setError("Les mots de passe ne correspondent pas.");
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          orgName,
+          sector,
+          size,
+          contactName,
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data?.ok) {
+        if (data.error === "EMAIL_TAKEN") setError("Cet email est déjà utilisé.");
+        else if (data.error === "TOKEN_INVALID") setError("Lien d'invitation invalide.");
+        else setError("Erreur lors de la création du compte.");
+        return;
+      }
+
+      // Connexion automatique
+      const signInRes = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInRes?.error) {
+        setError("Compte créé mais erreur de connexion. Connectez-vous manuellement.");
+        router.push("/login");
+        return;
+      }
+
+      router.push("/welcome");
+    } catch {
+      setError("Erreur inattendue. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputClass = "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition";
+  const labelClass = "block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5";
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-slate-400 text-sm">Vérification du lien…</div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6">
+        <div className="mb-6 inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L3 7V12C3 16.55 6.84 20.74 12 22C17.16 20.74 21 16.55 21 12V7L12 2Z" fill="white" fillOpacity="0.9"/>
+          </svg>
+        </div>
+        <div className="text-2xl font-bold text-white mb-2">Concordia</div>
+        <div className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-6 py-4 text-sm text-rose-400 text-center max-w-sm">
+          {tokenError}
+        </div>
+        <a href="/login" className="mt-6 text-sm text-slate-400 hover:text-white transition">
+          → Retour à la connexion
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6">
+
+      {/* Logo */}
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L3 7V12C3 16.55 6.84 20.74 12 22C17.16 20.74 21 16.55 21 12V7L12 2Z" fill="white" fillOpacity="0.9"/>
+          </svg>
+        </div>
+        <div className="text-2xl font-bold tracking-tight text-white">Concordia</div>
+        <div className="mt-1 text-sm text-slate-400">Créez votre espace de conformité AI Act</div>
+      </div>
+
+      <div className="w-full max-w-lg space-y-4">
+
+        {/* Organisation */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+          <div className="text-sm font-bold text-white mb-2">Votre organisation</div>
+
+          <div>
+            <label className={labelClass}>Nom de l'organisation *</label>
+            <input
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              placeholder="Ex : Acme SAS"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Secteur d'activité</label>
+            <select
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              className={inputClass + " cursor-pointer"}
+            >
+              <option value="" className="bg-slate-900">— Sélectionner —</option>
+              {SECTORS.map((s) => (
+                <option key={s} value={s} className="bg-slate-900">{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Taille</label>
+            <div className="flex gap-2 flex-wrap">
+              {SIZES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSize(s)}
+                  className={[
+                    "rounded-xl border px-4 py-2 text-sm font-semibold transition",
+                    size === s
+                      ? "border-white bg-white text-slate-900"
+                      : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Référent */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+          <div className="text-sm font-bold text-white mb-2">Référent conformité</div>
+
+          <div>
+            <label className={labelClass}>Nom complet *</label>
+            <input
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              placeholder="Ex : Marie Dupont"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Email *</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder="marie.dupont@acme.fr"
+              readOnly={!!prefillEmail}
+              className={inputClass + (prefillEmail ? " opacity-60 cursor-not-allowed" : "")}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Mot de passe *</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="8 caractères minimum"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Confirmer le mot de passe *</label>
+            <input
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              type="password"
+              placeholder="Répétez le mot de passe"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+            {error}
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50 transition"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              Création en cours…
+            </span>
+          ) : (
+            "Créer mon espace Concordia →"
+          )}
+        </button>
+
+        <div className="text-center text-xs text-slate-600">
+          Règlement (UE) 2024/1689 · AI Act · Conformité probatoire
+        </div>
+      </div>
+    </div>
+  );
+}

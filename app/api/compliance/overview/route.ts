@@ -23,21 +23,44 @@ function asPriority(v: any): Priority {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const useCaseKey = url.searchParams.get("useCaseKey")?.trim() || null;
+    const useCaseKeyFilter = url.searchParams.get("useCaseKey")?.trim() || null;
 
     // Totaux
     const [obligationsCount, actionsCount] = await Promise.all([
       prisma.useCaseObligationState.count({
-        where: useCaseKey ? { useCaseKey } : undefined,
+        where: useCaseKeyFilter ? { useCaseKey: useCaseKeyFilter } : undefined,
       }),
-      prisma.complianceAction
-        ? prisma.complianceAction.count()
-        : Promise.resolve(0),
+      prisma.complianceAction.count(),
     ]);
 
-    // Liste des obligations (vivantes)
+    // 🔥 ACTIONS GROUPÉES PAR (useCaseKey + obligationId)
+    const actions = await prisma.complianceAction.findMany({
+      select: {
+        obligationId: true,
+        status: true,
+        audit: {
+          select: {
+            useCaseType: true,
+          },
+        },
+      },
+    });
+
+    const actionMap = new Map<string, { total: number; done: number }>();
+
+    for (const a of actions as any[]) {
+      const useCaseKey = a.audit?.useCaseType || "global";
+      const key = `${useCaseKey}__${a.obligationId}`;
+
+      const prev = actionMap.get(key) || { total: 0, done: 0 };
+      prev.total += 1;
+      if (a.status === "DONE") prev.done += 1;
+      actionMap.set(key, prev);
+    }
+
+    // Obligations
     const rows = await prisma.useCaseObligationState.findMany({
-      where: useCaseKey ? { useCaseKey } : undefined,
+      where: useCaseKeyFilter ? { useCaseKey: useCaseKeyFilter } : undefined,
       orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
       select: {
         useCaseKey: true,
@@ -55,19 +78,32 @@ export async function GET(req: Request) {
       take: 5000,
     });
 
-    const obligations = (rows as any[]).map((r: any) => ({
+    const obligations = (rows as any[]).map((r: any) => {
+      const useCaseKey = r.useCaseKey || "global";
+      const key = `${useCaseKey}__${r.obligationId}`;
 
-      useCaseKey: r.useCaseKey,
-      sector: r.useCase?.sector || "non-classe",
-      useCaseTitle: r.useCase?.title || "Cas d’usage",
-      obligationId: r.obligationId,
-      status: asStatus(r.status),
-      priority: asPriority(r.priority),
-      openActions: Number(r.openActions || 0),
-      lastAuditId: r.lastAuditId ?? null,
-      lastAuditAt: r.lastAuditAt ? r.lastAuditAt.toISOString() : null,
-      updatedAt: r.updatedAt.toISOString(),
-    }));
+      const stats = actionMap.get(key);
+      let computedStatus: Status = asStatus(r.status);
+      let computedOpenActions = Number(r.openActions || 0);
+
+      if (stats && stats.total > 0) {
+        computedOpenActions = stats.total - stats.done;
+        computedStatus = computedOpenActions === 0 ? "compliant" : "in-progress";
+      }
+
+      return {
+        useCaseKey,
+        sector: r.useCase?.sector || "non-classe",
+        useCaseTitle: r.useCase?.title || "Cas d’usage",
+        obligationId: r.obligationId,
+        status: computedStatus,
+        priority: asPriority(r.priority),
+        openActions: computedOpenActions,
+        lastAuditId: r.lastAuditId ?? null,
+        lastAuditAt: r.lastAuditAt ? r.lastAuditAt.toISOString() : null,
+        updatedAt: r.updatedAt.toISOString(),
+      };
+    });
 
     return NextResponse.json(
       {

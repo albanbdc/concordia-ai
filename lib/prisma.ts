@@ -1,16 +1,30 @@
+// lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 
-// Permet d'éviter de recréer un PrismaClient à chaque requête en dev
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
+}
+
+// ✅ V1: en local on force l'usage du pooler (DATABASE_URL)
+// et on évite toute bascule involontaire sur DIRECT_URL (db.xxx.supabase.co)
+function ensureDatabaseUrl() {
+  const dbUrl = process.env.DATABASE_URL;
+
+  if (!dbUrl) {
+    throw new Error("DATABASE_URL manquant (check .env.local / .env).");
+  }
+
+  // Force Prisma à utiliser DATABASE_URL même si DIRECT_URL existe
+  process.env.DIRECT_URL = dbUrl;
+}
+
+ensureDatabaseUrl();
 
 export const prisma =
-  globalForPrisma.prisma ??
+  global.prisma ||
   new PrismaClient({
-    log: ["error", "warn"], // tu peux mettre "query" pour debugger si besoin
+    log: ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+if (process.env.NODE_ENV !== "production") global.prisma = prisma;

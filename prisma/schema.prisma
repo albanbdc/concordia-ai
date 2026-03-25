@@ -3,32 +3,79 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-/**
- * ✅ Auth / Users (NextAuth-ready)
- * - email unique
- * - passwordHash pour ton login/register email+mdp
- * - modèles Account/Session/VerificationToken si tu utilises NextAuth
- */
+model Organization {
+  id            String           @id @default(cuid())
+  name          String
+  sector        String?
+  size          String?
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  audits        Audit[]
+  snapshots     LedgerSnapshot[]
+  systems       System[]
+  useCases      UseCase[]
+  users         User[]
+
+  @@index([name])
+}
+
+model System {
+  id             String       @id @default(cuid())
+  name           String
+  provider       String?
+  version        String?
+  owner          String
+  status         SystemStatus @default(NORMAL)
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  useCases       UseCase[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model LedgerSnapshot {
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  headHash       String?
+  actor          String?
+  active         Boolean       @default(false)
+  organizationId String?
+  historyCount   Int           @default(0)
+  sealed         Boolean       @default(false)
+  snapshotHash   String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([createdAt])
+  @@index([organizationId])
+  @@index([sealed])
+}
+
 model User {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  email          String        @unique
+  passwordHash   String?
+  name           String?
+  image          String?
+  organizationId String?
+  accounts       Account[]
+  audits         Audit[]       @relation("UserAudits")
+  sessions       Session[]
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  email        String  @unique
-  passwordHash String?
-  name         String?
-  image        String?
-
-  // NextAuth relations
-  accounts Account[]
-  sessions Session[]
-
-  // Liaison optionnelle côté audits (si tu veux plus tard)
-  audits Audit[]
+  @@index([organizationId])
 }
 
 model Account {
@@ -44,8 +91,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -56,8 +102,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -70,72 +115,249 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-/**
- * ✅ Audits
- */
 model Audit {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
+  id                 String                   @id @default(cuid())
+  createdAt          DateTime                 @default(now())
+  userId             String?
   type               String
   industrySector     String?
   useCaseType        String?
   internalDepartment String?
+  inputText          String?
+  resultText         String?
+  certified          Boolean                  @default(false)
+  organizationId     String?
+  useCaseKey         String?
+  organization       Organization?            @relation(fields: [organizationId], references: [id])
+  useCase            UseCase?                 @relation("UseCaseAudits", fields: [useCaseKey], references: [key])
+  user               User?                    @relation("UserAudits", fields: [userId], references: [id])
+  events             AuditEvent[]
+  integrity          AuditIntegrity?
+  version            AuditVersion?
+  actions            ComplianceAction[]
+  proofs             UseCaseObligationProof[]
 
-  inputText  String
-  resultText String
-
-  // 🔐 Traçabilité & sécurité avancée
-  events       AuditEvent[]
-  integrity    AuditIntegrity?
-  modelVersion AuditVersion?
-
-  // 🔗 Plan d'action de conformité
-  complianceActions ComplianceAction[]
-
-  // Traçabilité / intégrité simple
-  integrityHash String?
-  certified     Boolean   @default(false)
-  certifiedAt   DateTime?
-  certifiedBy   String?
+  @@index([useCaseKey])
 }
 
 model AuditEvent {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-
-  type    String
-  details String?
-
-  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId String
+  type      String
+  details   String?
+  auditId   String
+  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
 }
 
 model AuditIntegrity {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-
   hash      String
-  algorithm String @default("SHA-256")
-
-  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId String @unique
+  algorithm String   @default("SHA-256")
+  auditId   String   @unique
+  audit     Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
 }
 
 model AuditVersion {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
   modelName    String
   modelVersion String
   apiProvider  String
+  auditId      String   @unique
+  audit        Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+}
 
-  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId String @unique
+model ComplianceAction {
+  id           String           @id @default(cuid())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  auditId      String
+  title        String
+  description  String?
+  status       ComplianceStatus @default(TODO)
+  obligationId String           @default("unknown")
+  owner        String           @default("CLIENT")
+  priority     String           @default("MEDIUM")
+  source       String           @default("ENGINE")
+  audit        Audit            @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+}
+
+model UseCase {
+  id             String                   @id @default(cuid())
+  key            String                   @unique
+  sector         String
+  title          String
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  organizationId String?
+  systemId       String?
+
+  classification       UseCaseClassification @default(NORMAL)
+  role                 UseCaseRole           @default(DEPLOYER)
+  isProhibited         Boolean               @default(false)
+  requiresTransparency Boolean               @default(false)
+  isGPAI               Boolean               @default(false)
+  annexCategory        AnnexCategory?
+
+  audits       Audit[]                  @relation("UseCaseAudits")
+  organization Organization?            @relation(fields: [organizationId], references: [id])
+  system       System?                  @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  obligations  UseCaseObligationState[]
+
+  @@index([sector])
+  @@index([title])
+  @@index([organizationId])
+  @@index([systemId])
+}
+
+model UseCaseObligationState {
+  id           String                     @id @default(cuid())
+  useCaseKey   String
+  obligationId String
+  status       String
+  priority     String
+  openActions  Int                        @default(0)
+  lastAuditId  String?
+  lastAuditAt  DateTime?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  dueDate      DateTime?
+  notes        String?
+  owner        String?
+  history      UseCaseObligationHistory[]
+  proofs       UseCaseObligationProof[]
+  useCase      UseCase                    @relation(fields: [useCaseKey], references: [key], onDelete: Cascade)
+  obligation   ObligationCatalog?         @relation(fields: [obligationId], references: [id])
+
+  @@unique([useCaseKey, obligationId])
+  @@index([obligationId])
+  @@index([status])
+  @@index([priority])
+}
+
+model UseCaseObligationHistory {
+  id        String                 @id @default(cuid())
+  createdAt DateTime               @default(now())
+  stateId   String
+  type      String
+  message   String
+  actor     String?
+  auditId   String?
+  auditAt   DateTime?
+  meta      Json?
+  prevHash  String?
+  txHash    String
+  payload   String
+  state     UseCaseObligationState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@index([stateId, createdAt])
+  @@index([type, createdAt])
+}
+
+model UseCaseObligationProof {
+  id        String                          @id @default(cuid())
+  createdAt DateTime                        @default(now())
+  updatedAt DateTime                        @updatedAt
+  stateId   String
+  label     String?
+  url       String
+  type      String                          @default("LINK")
+  actor     String?
+  deletedAt DateTime?
+  auditAt   DateTime?
+  auditId   String?
+  audit     Audit?                          @relation(fields: [auditId], references: [id])
+  state     UseCaseObligationState          @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  versions  UseCaseObligationProofVersion[]
+
+  @@index([stateId, createdAt])
+  @@index([deletedAt])
+  @@index([auditId])
+}
+
+model UseCaseObligationProofVersion {
+  id            String                 @id @default(cuid())
+  createdAt     DateTime               @default(now())
+  proofId       String
+  version       Int
+  label         String?
+  url           String
+  type          String
+  actor         String?
+  auditId       String?
+  auditAt       DateTime?
+  integrityHash String?
+  proof         UseCaseObligationProof @relation(fields: [proofId], references: [id], onDelete: Cascade)
+
+  @@unique([proofId, version])
+  @@index([proofId, createdAt])
+  @@index([auditId])
+}
+
+model ObligationCatalog {
+  id          String                   @id
+  title       String
+  description String?
+  legalRef    String?
+  category    String?
+  criticality ObligationCriticality?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime
+  states      UseCaseObligationState[]
+
+  @@index([category])
+  @@index([criticality])
+}
+
+model ObligationHistory {
+  id              String            @id
+  obligationId    String
+  stateId         String
+  fromStatus      ObligationStatus?
+  toStatus        ObligationStatus
+  note            String?
+  auditId         String?
+  auditAt         DateTime?
+  createdAt       DateTime          @default(now())
+  ObligationState ObligationState   @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@index([obligationId, createdAt])
+  @@index([stateId, createdAt])
+}
+
+model ObligationState {
+  id                String              @id
+  obligationId      String              @unique
+  status            ObligationStatus    @default(NOT_EVALUATED)
+  owner             String?
+  dueDate           DateTime?
+  notes             String?
+  lastAuditId       String?
+  lastAuditAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  ObligationHistory ObligationHistory[]
+
+  @@index([status])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  email          String?
+  token          String    @unique @default(cuid())
+  used           Boolean   @default(false)
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  organizationId String?
+}
+
+enum SystemStatus {
+  NORMAL
+  CONFORMITE_RENFORCEE_REQUISE
 }
 
 enum ComplianceStatus {
@@ -144,62 +366,47 @@ enum ComplianceStatus {
   DONE
 }
 
-model ComplianceAction {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  auditId String
-
-  // ✅ IMPORTANT :
-  // on les met REQUIRED avec des defaults -> Prisma peut ajouter les colonnes sans bloquer les lignes existantes
-  obligationId String  @default("unknown")
-  title        String
-  description  String? // ✅ on laisse optionnel pour ne pas planter si DB contient déjà des NULL
-
-  priority String           @default("MEDIUM") // "HIGH" | "MEDIUM" | "LOW"
-  owner    String           @default("CLIENT") // "CLIENT" | "CABINET"
-  status   ComplianceStatus @default(TODO)
-  source   String           @default("ENGINE") // "ENGINE"
-
-  @@index([auditId])
+enum UseCaseClassification {
+  NORMAL
+  TRANSPARENCY
+  HIGH_RISK
 }
 
-model UseCase {
-  id        String   @id @default(cuid())
-  key       String   @unique // ex: "justice__reconaissance-faciale"
-  sector    String
-  title     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  obligations UseCaseObligationState[]
-
-  @@index([sector])
-  @@index([title])
+enum UseCaseRole {
+  DEPLOYER
+  PROVIDER
+  BOTH
 }
 
-model UseCaseObligationState {
-  id String @id @default(cuid())
+enum ObligationCriticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
 
-  useCaseKey   String
-  obligationId String
+enum ObligationStatus {
+  NOT_EVALUATED
+  IN_PROGRESS
+  COMPLIANT
+  NON_COMPLIANT
+}
 
-  status      String // "compliant" | "in-progress" | "non-compliant"
-  priority    String // "low" | "medium" | "high"
-  openActions Int    @default(0)
+enum AnnexCategory {
+  EMPLOYMENT
+  EDUCATION
+  ESSENTIAL_SERVICES
+  JUSTICE
+  LAW_ENFORCEMENT
+  MIGRATION
+  CRITICAL_INFRASTRUCTURE
+}
 
-  lastAuditId String?
-  lastAuditAt DateTime?
-
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique @default(cuid())
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  useCase UseCase @relation(fields: [useCaseKey], references: [key], onDelete: Cascade)
-
-  @@unique([useCaseKey, obligationId])
-  @@index([obligationId])
-  @@index([status])
-  @@index([priority])
+  expiresAt DateTime
 }
