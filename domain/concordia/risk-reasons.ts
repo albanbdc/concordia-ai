@@ -224,19 +224,20 @@ export function computeUseCaseRiskReasons(
   }
 
   // Si aucun flag ne ressort mais que le risque est élevé :
-  if (reasons.length === 0 && riskLevel === "high") {
+  if (reasons.length === 0 && (riskLevel as string) === "high") {
     reasons.push(
       "Le niveau de risque est élevé en raison de la combinaison de facteurs d’impact et du contexte d’utilisation, même si aucun indicateur isolé ne ressort fortement."
     );
   }
 
-  if (reasons.length === 0 && riskLevel === "limited") {
+  if (reasons.length === 0 && (riskLevel as string) === "limited") {
     reasons.push(
       "Le risque est jugé limité : l’impact sur les individus existe mais reste circonscrit et maîtrisable avec des mesures de gouvernance adaptées."
     );
   }
 
-  if (reasons.length === 0 && riskLevel === "minimal") {
+  if (reasons.length === 0 && (riskLevel as string) === "minimal") {
+
     reasons.push(
       "Le cas d’usage présente un niveau de risque faible, avec un impact limité sur les personnes et un usage principalement support ou assistanciel."
     );
