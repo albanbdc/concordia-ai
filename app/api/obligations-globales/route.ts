@@ -1,9 +1,4 @@
 // app/api/obligations-globales/route.ts
-// Vue "Obligations globales" (cockpit contrôleur)
-// - Agrège ObligationState (global) + JOIN ObligationCatalog (title/legalRef/category/criticality)
-// - Filtres: article (match legalRef), q (search), status, category, criticality
-// - Retourne: stats + liste triée
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -43,21 +38,17 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // "article" = ce que tape le contrôleur (ex: "Article 9", "Art. 10", "9")
     const article = norm(url.searchParams.get("article"));
     const q = norm(url.searchParams.get("q"));
-    const status = upper(url.searchParams.get("status")); // ALL | NON_COMPLIANT | IN_PROGRESS | NOT_EVALUATED | COMPLIANT
+    const status = upper(url.searchParams.get("status"));
     const category = norm(url.searchParams.get("category"));
-    const criticality = upper(url.searchParams.get("criticality")); // LOW | MEDIUM | HIGH | CRITICAL
+    const criticality = upper(url.searchParams.get("criticality"));
     const take = safeTakeInt(url.searchParams.get("take"), 200, 1, 500);
 
-    // 1) Charger les states globaux + 1 event d’historique (preview)
+    // 1) Charger les states globaux
     const states = await prisma.obligationState.findMany({
       orderBy: [{ updatedAt: "desc" }],
       take,
-      include: {
-        history: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
     });
 
     // 2) JOIN catalogue (manuel)
@@ -80,7 +71,7 @@ export async function GET(req: Request) {
 
     const catalogMap = new Map(catalog.map((c) => [c.id, c]));
 
-    // 3) DTO + filtres (sur données jointes)
+    // 3) DTO + filtres
     const rows = states
       .map((s) => {
         const c = catalogMap.get(s.obligationId) ?? null;
@@ -90,20 +81,7 @@ export async function GET(req: Request) {
         const cat = c?.category ?? null;
         const crit = c?.criticality ? String(c.criticality).toUpperCase() : null;
 
-        const hist0 = s.history?.[0];
-        const historyPreview = hist0
-          ? {
-              id: hist0.id,
-              toStatus: String(hist0.toStatus ?? "").toUpperCase(),
-              note: hist0.note ?? null,
-              createdAt: hist0.createdAt.toISOString(),
-              auditId: hist0.auditId ?? null,
-              auditAt: toIso(hist0.auditAt),
-            }
-          : null;
-
         return {
-          // state
           id: s.id,
           obligationId: s.obligationId,
           status: String(s.status ?? "").toUpperCase(),
@@ -115,7 +93,6 @@ export async function GET(req: Request) {
           createdAt: s.createdAt.toISOString(),
           updatedAt: s.updatedAt.toISOString(),
 
-          // catalog
           obligation: {
             id: s.obligationId,
             title,
@@ -126,35 +103,24 @@ export async function GET(req: Request) {
             catalogUpdatedAt: c?.updatedAt ? c.updatedAt.toISOString() : null,
           },
 
-          // preview
-          historyPreview,
+          historyPreview: null,
         };
       })
       .filter((r) => {
-        // filtre article -> match legalRef (contient)
         if (article) {
           const lr = (r.obligation.legalRef ?? "").toLowerCase();
-          const a = article.toLowerCase();
-          if (!lr.includes(a)) return false;
+          if (!lr.includes(article.toLowerCase())) return false;
         }
-
-        // filtre status
         if (status && status !== "ALL") {
           if (upper(r.status) !== status) return false;
         }
-
-        // filtre category
         if (category) {
           const rc = (r.obligation.category ?? "").toLowerCase();
           if (!rc.includes(category.toLowerCase())) return false;
         }
-
-        // filtre criticality
         if (criticality && criticality !== "ALL") {
           if (upper(r.obligation.criticality ?? "") !== criticality) return false;
         }
-
-        // filtre q (title / legalRef / notes / owner)
         if (q) {
           const qq = q.toLowerCase();
           const t = (r.obligation.title ?? "").toLowerCase();
@@ -163,11 +129,10 @@ export async function GET(req: Request) {
           const ow = (r.owner ?? "").toLowerCase();
           if (!t.includes(qq) && !lr.includes(qq) && !no.includes(qq) && !ow.includes(qq)) return false;
         }
-
         return true;
       });
 
-    // 4) Stats (sur la vue filtrée)
+    // 4) Stats
     const stats = rows.reduce(
       (acc, r) => {
         acc.total += 1;
@@ -182,7 +147,7 @@ export async function GET(req: Request) {
       { total: 0, compliant: 0, inProgress: 0, nonCompliant: 0, notEvaluated: 0, other: 0 }
     );
 
-    // 5) Tri : pire statut en premier, puis plus récent
+    // 5) Tri
     rows.sort((a, b) => {
       const ra = statusRank(a.status);
       const rb = statusRank(b.status);
