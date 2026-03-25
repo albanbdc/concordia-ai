@@ -34,7 +34,9 @@ export async function POST() {
     if (missing.length > 0) {
       await prisma.obligationState.createMany({
         data: missing.map((obligationId) => ({
+          id: crypto.randomUUID(),
           obligationId,
+          updatedAt: new Date(),
           // status par défaut = NOT_EVALUATED (déjà dans Prisma)
         })),
         skipDuplicates: true, // sécurité
