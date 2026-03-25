@@ -232,6 +232,7 @@ async function main() {
         legalRef: it.legalRef,
         category: it.category,
         criticality: it.criticality as any,
+        updatedAt: new Date(),
       },
       update: {
         title: it.title,
