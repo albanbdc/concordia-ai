@@ -1,0 +1,9 @@
+export default function PricingPage() {
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Pricing</h1>
+    </div>
+  );
+}
+
+
