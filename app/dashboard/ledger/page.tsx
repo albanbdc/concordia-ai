@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type LedgerItem = {
@@ -64,7 +64,7 @@ function actionLabel(i: LedgerItem) {
   return LEGAL_ACTIONS[i.type] ?? i.type;
 }
 
-export default function LedgerPage() {
+function LedgerContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const snapshotId = searchParams.get("snapshotId");
@@ -81,13 +81,9 @@ export default function LedgerPage() {
   const [showHelp, setShowHelp] = useState(false);
 
   async function load() {
-    const url = snapshotId
-      ? `/api/ledger?snapshotId=${snapshotId}`
-      : `/api/ledger`;
-
+    const url = snapshotId ? `/api/ledger?snapshotId=${snapshotId}` : `/api/ledger`;
     const res = await fetch(url);
     const data = await res.json();
-
     if (data.ok) {
       setItems(data.history);
       setChainValid(data.chainValid);
@@ -273,8 +269,6 @@ export default function LedgerPage() {
 
   return (
     <div className="p-8 space-y-8">
-
-      {/* Mode Snapshot */}
       {viewingSnapshot && (
         <div className="border border-blue-300 bg-blue-50 rounded-xl p-4 flex justify-between items-center">
           <div>
@@ -289,22 +283,18 @@ export default function LedgerPage() {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Ledger – Registre de conformité vivant</h1>
           <p className="text-sm text-slate-500">Historique probatoire append-only</p>
         </div>
-
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowHelp(true)}
             className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-400 hover:bg-slate-50 transition font-bold text-sm flex items-center justify-center"
-            title="En savoir plus sur le ledger"
           >
             ?
           </button>
-
           <button
             onClick={exportPDF}
             disabled={pdfBusy || filtered.length === 0}
@@ -312,7 +302,6 @@ export default function LedgerPage() {
           >
             {pdfBusy ? "Export..." : "⬇ Exporter PDF"}
           </button>
-
           {!viewingSnapshot && (
             <button
               onClick={createSnapshot}
@@ -325,7 +314,6 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      {/* LISTE DES SNAPSHOTS */}
       {snapshots.length > 0 && (
         <div className="border rounded-2xl p-6 space-y-4">
           <h2 className="font-semibold text-lg">📜 Historique des snapshots</h2>
@@ -338,10 +326,7 @@ export default function LedgerPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   {s.active && <span className="text-green-600 text-xs font-semibold">Actif</span>}
-                  <button
-                    onClick={() => openSnapshot(s.id)}
-                    className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs"
-                  >
+                  <button onClick={() => openSnapshot(s.id)} className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs">
                     Voir
                   </button>
                 </div>
@@ -351,7 +336,6 @@ export default function LedgerPage() {
         </div>
       )}
 
-      {/* KPI */}
       <div className="grid grid-cols-3 gap-4">
         <div className="border rounded-xl p-4">
           <div className="text-xs text-slate-500">Événements</div>
@@ -369,7 +353,6 @@ export default function LedgerPage() {
         </div>
       </div>
 
-      {/* TABLE */}
       <div className="overflow-auto border rounded-2xl">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100">
@@ -414,39 +397,28 @@ export default function LedgerPage() {
         </table>
       </div>
 
-      {/* Modal aide ledger */}
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowHelp(false)} />
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6 space-y-5">
-
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">
-                  Concordia
-                </div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Concordia</div>
                 <h2 className="text-lg font-bold text-slate-900">Le Ledger probatoire</h2>
               </div>
-              <button
-                onClick={() => setShowHelp(false)}
-                className="text-slate-400 hover:text-slate-700 transition text-xl shrink-0"
-              >
-                ✕
-              </button>
+              <button onClick={() => setShowHelp(false)} className="text-slate-400 hover:text-slate-700 transition text-xl shrink-0">✕</button>
             </div>
-
             <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
               <p>
                 Le ledger est le <span className="font-semibold text-slate-900">registre central de toutes vos actions de conformité</span>.
-                Chaque événement — ajout d'une preuve, changement de statut, gel du registre — y est enregistré de façon permanente et inaltérable.
+                Chaque événement est enregistré de façon permanente et inaltérable.
               </p>
-
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                 {[
-                  { icon: "🔒", title: "Append-only", desc: "Aucune entrée ne peut être modifiée ou supprimée rétroactivement. Chaque événement est définitif." },
-                  { icon: "🔗", title: "Chaîne SHA-256", desc: "Chaque entrée est liée cryptographiquement à la précédente. Toute altération brise la chaîne et est immédiatement détectée." },
-                  { icon: "⏱️", title: "Horodatage", desc: "Chaque action est datée au moment exact de son enregistrement, créant une chronologie juridiquement traçable." },
-                  { icon: "🧊", title: "Snapshots", desc: "Vous pouvez geler l'état du registre à tout moment pour produire une preuve figée, consultable ultérieurement." },
+                  { icon: "🔒", title: "Append-only", desc: "Aucune entrée ne peut être modifiée ou supprimée rétroactivement." },
+                  { icon: "🔗", title: "Chaîne SHA-256", desc: "Chaque entrée est liée cryptographiquement à la précédente." },
+                  { icon: "⏱️", title: "Horodatage", desc: "Chaque action est datée au moment exact de son enregistrement." },
+                  { icon: "🧊", title: "Snapshots", desc: "Vous pouvez geler l'état du registre à tout moment." },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-3">
                     <span className="text-base shrink-0">{item.icon}</span>
@@ -457,22 +429,21 @@ export default function LedgerPage() {
                   </div>
                 ))}
               </div>
-
-              <p className="text-xs text-slate-400">
-                En cas de contrôle par une autorité compétente, le ledger constitue la preuve documentaire de votre démarche de conformité au Règlement (UE) 2024/1689.
-              </p>
             </div>
-
-            <button
-              onClick={() => setShowHelp(false)}
-              className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black transition"
-            >
+            <button onClick={() => setShowHelp(false)} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-black transition">
               Compris
             </button>
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+export default function LedgerPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Chargement...</div>}>
+      <LedgerContent />
+    </Suspense>
   );
 }
