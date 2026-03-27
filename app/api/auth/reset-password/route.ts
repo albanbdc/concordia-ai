@@ -37,8 +37,8 @@ export async function POST(req: Request) {
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password/${resetToken.token}`;
 
     await resend.emails.send({
-      from: "Concordia <onboarding@resend.dev>",
-      to: process.env.NODE_ENV === "production" ? email : "albanbdc@gmail.com",
+      from: "Concordia <no-reply@concordia-ai.eu>",
+to: email,
       subject: "Réinitialisation de votre mot de passe Concordia",
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">

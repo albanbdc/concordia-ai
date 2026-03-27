@@ -139,6 +139,12 @@ export default function LoginClient() {
             </div>
           </form>
         </div>
+       
+        <div className="text-center">
+  <Link href="/register" className="text-xs text-slate-500 hover:text-slate-300 transition">
+    Pas encore de compte ? S'inscrire →
+  </Link>
+</div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-slate-600">

@@ -13,12 +13,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { token, orgName, sector, size, contactName } = body;
+    const { orgName, sector, size, contactName, phone } = body;
     const email = String(body?.email ?? "").toLowerCase().trim();
     const password = String(body?.password ?? "").trim();
 
     // Validation champs requis
-    if (!token || !orgName || !contactName || !email || !password) {
+    if (!orgName || !contactName || !email || !password) {
       return NextResponse.json({ ok: false, error: "MISSING_FIELDS" }, { status: 400 });
     }
 
@@ -28,15 +28,6 @@ export async function POST(req: Request) {
 
     if (password.length < 8) {
       return NextResponse.json({ ok: false, error: "PASSWORD_TOO_SHORT" }, { status: 400 });
-    }
-
-    // Vérification token
-    const invitation = await prisma.invitation.findUnique({
-      where: { token },
-    });
-
-    if (!invitation || invitation.used || new Date() > invitation.expiresAt) {
-      return NextResponse.json({ ok: false, error: "TOKEN_INVALID" }, { status: 400 });
     }
 
     // Vérification email unique
@@ -55,6 +46,7 @@ export async function POST(req: Request) {
           sector: sector || null,
           size: size || null,
           contactName,
+          contactPhone: phone || null,
         },
       });
 
@@ -63,15 +55,6 @@ export async function POST(req: Request) {
           email,
           passwordHash,
           name: contactName,
-          organizationId: organization.id,
-        },
-      });
-
-      await tx.invitation.update({
-        where: { token },
-        data: {
-          used: true,
-          usedAt: new Date(),
           organizationId: organization.id,
         },
       });

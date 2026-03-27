@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 const BOTTOM_ITEMS = [
   { label: "🏢 Mon organisation", href: "/dashboard/organisation" },
   { label: "📖 Comprendre l'AI Act", href: "/dashboard/ia-act" },
-  { label: "🔗 Invitations", href: "/dashboard/admin/invitations" },
+  
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
