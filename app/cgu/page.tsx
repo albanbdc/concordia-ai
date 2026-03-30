@@ -227,6 +227,7 @@ export default function CGUPage() {
           Concordia · Règlement (UE) 2024/1689 · AI Act
         </div>
         <div className="flex items-center gap-6 text-xs text-slate-600">
+          <Link href="/politique-confidentialite" className="hover:text-slate-400 transition">Confidentialité</Link>
           <Link href="/mentions-legales" className="hover:text-slate-400 transition">Mentions légales</Link>
           <Link href="/cgu" className="hover:text-slate-400 transition">CGU</Link>
           <Link href="/pricing" className="hover:text-slate-400 transition">Tarifs</Link>
