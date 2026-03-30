@@ -1,9 +1,9 @@
 import Link from "next/link";
- 
+
 export default function CGUPage() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
- 
+
       {/* NAV */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <Link href="/" className="flex items-center gap-2.5">
@@ -21,11 +21,11 @@ export default function CGUPage() {
           Commencer →
         </Link>
       </nav>
- 
+
       {/* CONTENT */}
       <main className="flex-1 px-6 py-16 flex justify-center">
         <div className="w-full max-w-3xl">
- 
+
           {/* Header */}
           <div className="mb-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-slate-400 mb-6">
@@ -38,7 +38,7 @@ export default function CGUPage() {
               Contrat de Service SaaS B2B — Concordia AI
             </p>
           </div>
- 
+
           {/* Parties */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 mb-8 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Entre</p>
@@ -50,7 +50,7 @@ export default function CGUPage() {
               Toute personne morale ou physique professionnelle souscrivant à la Solution (ci-après le <span className="text-slate-200">« Client »</span>)
             </p>
           </div>
- 
+
           {/* Préambule */}
           <Section title="Préambule">
             <p>
@@ -60,14 +60,14 @@ export default function CGUPage() {
               Les présentes Conditions Générales d'Utilisation (ci-après les « CGU » ou le « Contrat ») ont pour objet de définir les termes et conditions dans lesquels le Fournisseur fournit la Solution au Client.
             </p>
           </Section>
- 
+
           {/* Article 1 */}
           <Section title="Article 1 – Objet">
             <p>
               Le présent Contrat a pour objet de définir les conditions techniques et financières dans lesquelles le Fournisseur met à disposition du Client la Solution Concordia, accessible à distance via Internet, ainsi que les services associés.
             </p>
           </Section>
- 
+
           {/* Article 2 */}
           <Section title="Article 2 – Accès et utilisation de la Solution">
             <p>
@@ -77,7 +77,7 @@ export default function CGUPage() {
               <span className="text-slate-200 font-semibold">2.2.</span> Le Client s'engage à utiliser la Solution conformément à sa destination et aux présentes CGU.
             </p>
           </Section>
- 
+
           {/* Article 3 */}
           <Section title="Article 3 – Fonctionnalités et Disclaimer">
             <p><span className="text-slate-200 font-semibold">3.1.</span> La Solution Concordia permet notamment au Client de :</p>
@@ -115,7 +115,7 @@ export default function CGUPage() {
               </p>
             </div>
           </Section>
- 
+
           {/* Article 4 */}
           <Section title="Article 4 – Conditions financières">
             <p>
@@ -128,7 +128,7 @@ export default function CGUPage() {
               <span className="text-slate-200 font-semibold">4.3.</span> Les factures sont payables à 30 jours fin de mois à compter de leur date d'émission.
             </p>
           </Section>
- 
+
           {/* Article 5 */}
           <Section title="Article 5 – Durée et résiliation">
             <p>
@@ -138,28 +138,28 @@ export default function CGUPage() {
               <span className="text-slate-200 font-semibold">5.2.</span> Chaque Partie pourra résilier le Contrat par lettre recommandée avec accusé de réception, moyennant un préavis de 1 mois avant la fin de la période en cours.
             </p>
           </Section>
- 
+
           {/* Article 6 */}
           <Section title="Article 6 – Propriété intellectuelle">
             <p>
               Le Fournisseur est et demeure seul titulaire de l'ensemble des droits de propriété intellectuelle afférents à la Solution. Le présent Contrat n'opère aucun transfert de propriété au bénéfice du Client.
             </p>
           </Section>
- 
+
           {/* Article 7 */}
           <Section title="Article 7 – Confidentialité">
             <p>
               Chaque Partie s'engage à garder confidentielles toutes les informations de l'autre Partie dont elle aurait connaissance dans le cadre de l'exécution du présent Contrat.
             </p>
           </Section>
- 
+
           {/* Article 8 */}
           <Section title="Article 8 – Protection des données personnelles (RGPD)">
             <p>
               Dans le cadre de la fourniture de la Solution, le Fournisseur pourra être amené à traiter des données personnelles pour le compte du Client. Les Parties s'engagent à respecter la réglementation en vigueur en matière de protection des données personnelles, notamment le Règlement (UE) 2016/679 (RGPD). Un Accord de Traitement des Données (DPA) sera annexé au présent Contrat pour préciser les rôles et obligations de chaque Partie.
             </p>
           </Section>
- 
+
           {/* Article 9 */}
           <Section title="Article 9 – Responsabilité">
             <p>
@@ -172,21 +172,21 @@ export default function CGUPage() {
               <span className="text-slate-200 font-semibold">9.3. Plafond de responsabilité</span> — En tout état de cause, la responsabilité cumulée du Fournisseur au titre du présent Contrat est expressément limitée au montant total des sommes effectivement payées par le Client au Fournisseur au cours des douze (12) mois précédant la survenance du fait générateur du dommage.
             </p>
           </Section>
- 
+
           {/* Article 10 */}
           <Section title="Article 10 – Force majeure">
             <p>
               Aucune des Parties ne pourra être tenue responsable de la non-exécution ou du retard dans l'exécution de l'une de ses obligations si cette non-exécution ou ce retard est dû à un cas de force majeure.
             </p>
           </Section>
- 
+
           {/* Article 11 */}
           <Section title="Article 11 – Loi applicable et juridiction compétente">
             <p>
               Le présent Contrat est régi par le droit français. Tout litige relatif à la validité, l'interprétation ou l'exécution du présent Contrat sera soumis à la compétence exclusive des tribunaux de <strong className="text-white">Vichy</strong>.
             </p>
           </Section>
- 
+
           {/* Annexes */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 mt-8">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Annexes</p>
@@ -201,7 +201,7 @@ export default function CGUPage() {
               </li>
             </ul>
           </div>
- 
+
           {/* CTA retour */}
           <div className="mt-12 flex items-center gap-4">
             <Link
@@ -217,26 +217,27 @@ export default function CGUPage() {
               ← Retour à l'accueil
             </Link>
           </div>
- 
+
         </div>
       </main>
- 
+
       {/* FOOTER */}
       <footer className="px-8 py-6 border-t border-white/5 flex items-center justify-between flex-wrap gap-4">
         <div className="text-xs text-slate-600">
           Concordia · Règlement (UE) 2024/1689 · AI Act
         </div>
         <div className="flex items-center gap-6 text-xs text-slate-600">
+          <Link href="/mentions-legales" className="hover:text-slate-400 transition">Mentions légales</Link>
           <Link href="/cgu" className="hover:text-slate-400 transition">CGU</Link>
           <Link href="/pricing" className="hover:text-slate-400 transition">Tarifs</Link>
           <Link href="/login" className="hover:text-slate-400 transition">Connexion</Link>
         </div>
       </footer>
- 
+
     </div>
   );
 }
- 
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-8">
@@ -249,4 +250,3 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
- 
