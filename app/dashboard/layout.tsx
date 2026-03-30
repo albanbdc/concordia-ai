@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: "Journal Global", href: "/dashboard/history" },
   { label: "Ledger de conformité", href: "/dashboard/ledger" },
   { label: "Vue contrôleur", href: "/dashboard/vue-controleur" },
+  { label: "Bibliothèque", href: "/dashboard/bibliotheque" },
 ];
 
 const BOTTOM_ITEMS = [
