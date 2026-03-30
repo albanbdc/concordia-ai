@@ -1,21 +1,21 @@
 "use client";
- 
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
- 
+
 const SECTORS = [
   "Finance", "Assurance", "Santé", "Éducation", "Industrie",
   "Transport", "Énergie", "Retail", "Tech", "Juridique",
   "Secteur public", "Immobilier", "Autre",
 ];
- 
+
 const SIZES = ["TPE", "PME", "ETI", "Grand groupe"];
- 
+
 export default function RegisterPage() {
   const router = useRouter();
- 
+
   const [orgName, setOrgName] = useState("");
   const [sector, setSector] = useState("");
   const [size, setSize] = useState("");
@@ -28,46 +28,46 @@ export default function RegisterPage() {
   const [acceptCGU, setAcceptCGU] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
- 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
- 
+
     if (!orgName.trim()) return setError("Le nom de l'organisation est requis.");
     if (!contactName.trim()) return setError("Le nom du référent est requis.");
     if (!email.trim()) return setError("L'email est requis.");
     if (password.length < 8) return setError("Le mot de passe doit contenir au moins 8 caractères.");
     if (password !== passwordConfirm) return setError("Les mots de passe ne correspondent pas.");
     if (!acceptCGU) return setError("Vous devez accepter les Conditions Générales d'Utilisation pour créer un compte.");
- 
+
     setLoading(true);
- 
+
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orgName, sector, size, contactName, email, phone, password }),
       });
- 
+
       const data = await res.json();
- 
+
       if (!data?.ok) {
         if (data.error === "EMAIL_TAKEN") setError("Cet email est déjà utilisé.");
         else setError("Erreur lors de la création du compte.");
         return;
       }
- 
+
       const signInRes = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
- 
+
       if (signInRes?.error) {
         router.push("/login");
         return;
       }
- 
+
       router.push("/welcome");
     } catch {
       setError("Erreur inattendue. Veuillez réessayer.");
@@ -75,13 +75,13 @@ export default function RegisterPage() {
       setLoading(false);
     }
   }
- 
+
   const inputClass = "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition";
   const labelClass = "block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5";
- 
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6">
- 
+
       {/* Logo */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 mb-4">
@@ -92,13 +92,13 @@ export default function RegisterPage() {
         <div className="text-2xl font-bold tracking-tight text-white">Concordia</div>
         <div className="mt-1 text-sm text-slate-400">Créez votre espace de conformité AI Act</div>
       </div>
- 
+
       <div className="w-full max-w-lg space-y-4">
- 
+
         {/* Organisation */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
           <div className="text-sm font-bold text-white mb-2">Votre organisation</div>
- 
+
           <div>
             <label className={labelClass}>Nom de l'organisation *</label>
             <input
@@ -108,7 +108,7 @@ export default function RegisterPage() {
               className={inputClass}
             />
           </div>
- 
+
           <div>
             <label className={labelClass}>Secteur d'activité</label>
             <select
@@ -122,7 +122,7 @@ export default function RegisterPage() {
               ))}
             </select>
           </div>
- 
+
           <div>
             <label className={labelClass}>Taille</label>
             <div className="flex gap-2 flex-wrap">
@@ -144,11 +144,11 @@ export default function RegisterPage() {
             </div>
           </div>
         </div>
- 
+
         {/* Référent */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
           <div className="text-sm font-bold text-white mb-2">Référent conformité</div>
- 
+
           <div>
             <label className={labelClass}>Nom complet *</label>
             <input
@@ -158,7 +158,7 @@ export default function RegisterPage() {
               className={inputClass}
             />
           </div>
- 
+
           <div>
             <label className={labelClass}>Email *</label>
             <input
@@ -169,7 +169,7 @@ export default function RegisterPage() {
               className={inputClass}
             />
           </div>
- 
+
           <div>
             <label className={labelClass}>Téléphone</label>
             <input
@@ -180,7 +180,7 @@ export default function RegisterPage() {
               className={inputClass}
             />
           </div>
- 
+
           <div>
             <label className={labelClass}>Mot de passe *</label>
             <div className="relative">
@@ -200,7 +200,7 @@ export default function RegisterPage() {
               </button>
             </div>
           </div>
- 
+
           <div>
             <label className={labelClass}>Confirmer le mot de passe *</label>
             <input
@@ -212,7 +212,7 @@ export default function RegisterPage() {
             />
           </div>
         </div>
- 
+
         {/* Checkbox CGU */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <label className="flex items-start gap-3 cursor-pointer group">
@@ -248,18 +248,27 @@ export default function RegisterPage() {
               >
                 Conditions Générales d'Utilisation
               </Link>{" "}
+              et la{" "}
+              <Link
+                href="/politique-confidentialite"
+                target="_blank"
+                className="text-white underline underline-offset-2 hover:text-slate-200 transition"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Politique de Confidentialité
+              </Link>{" "}
               de Concordia AI
             </span>
           </label>
         </div>
- 
+
         {/* Erreur */}
         {error && (
           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
             {error}
           </div>
         )}
- 
+
         {/* Submit */}
         <button
           onClick={handleSubmit}
@@ -278,13 +287,13 @@ export default function RegisterPage() {
             "Créer mon espace Concordia →"
           )}
         </button>
- 
+
         <div className="text-center">
           <Link href="/login" className="text-xs text-slate-500 hover:text-slate-300 transition">
             Déjà un compte ? Se connecter →
           </Link>
         </div>
- 
+
         <div className="text-center text-xs text-slate-600">
           Règlement (UE) 2024/1689 · AI Act · Conformité probatoire
         </div>
