@@ -31,5 +31,6 @@ export const config = {
     "/api/usecases/:path*",
     "/api/users/:path*",
     "/api/vue-controleur/:path*",
+    "/api/user/:path*",
   ],
 };

@@ -18,9 +18,9 @@ const NAV_ITEMS = [
 ];
 
 const BOTTOM_ITEMS = [
+  { label: "👤 Mon compte", href: "/dashboard/mon-compte" },
   { label: "🏢 Mon organisation", href: "/dashboard/organisation" },
   { label: "📖 Comprendre l'AI Act", href: "/dashboard/ia-act" },
-  
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
