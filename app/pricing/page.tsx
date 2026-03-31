@@ -60,39 +60,19 @@ const PLANS = [
     cta: "Commencer →",
     ctaHref: "/register",
   },
-  {
-    name: "Partner",
-    price: "1 499",
-    target: "Cabinets Conseil & Avocats",
-    engagement: "Sans engagement",
-    highlight: false,
-    usecases: "Illimités par client",
-    priceLabel: "À partir de",
-    features: [
-      "Toutes les fonctionnalités Corporate",
-      "Gestion multi-clients / entités",
-      "Console partenaire centralisée",
-      "Support dédié + Onboarding",
-    ],
-    notIncluded: [],
-    cta: "Nous contacter →",
-    ctaHref: "mailto:albantwd@gmail.com",
-  },
 ];
 
 const COMPARISON = [
-  { feature: "Cas d'usage IA", basic: "3", premium: "15", corporate: "Illimités", partner: "Illimités" },
-  { feature: "Mapping & qualification risques", basic: "✅", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Moteur obligations AI Act", basic: "✅", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Gestion des preuves", basic: "✅", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Ledger SHA-256", basic: "✅", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Horodatage eIDAS", basic: "—", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Rapports d'audit", basic: "—", premium: "✅", corporate: "✅", partner: "✅" },
-  { feature: "Multi-utilisateurs", basic: "—", premium: "—", corporate: "Illimités", partner: "Illimités" },
-  { feature: "Gestion multi-clients", basic: "—", premium: "—", corporate: "—", partner: "✅" },
-  { feature: "Console partenaire", basic: "—", premium: "—", corporate: "—", partner: "✅" },
-  { feature: "Support", basic: "Email 48h", premium: "Prioritaire 24h", corporate: "Dédié", partner: "Dédié + Onboarding" },
-  { feature: "Mises à jour réglementaires", basic: "✅", premium: "✅", corporate: "✅", partner: "✅" },
+  { feature: "Cas d'usage IA", basic: "3", premium: "15", corporate: "Illimités" },
+  { feature: "Mapping & qualification risques", basic: "✅", premium: "✅", corporate: "✅" },
+  { feature: "Moteur obligations AI Act", basic: "✅", premium: "✅", corporate: "✅" },
+  { feature: "Gestion des preuves", basic: "✅", premium: "✅", corporate: "✅" },
+  { feature: "Ledger SHA-256", basic: "✅", premium: "✅", corporate: "✅" },
+  { feature: "Horodatage eIDAS", basic: "—", premium: "✅", corporate: "✅" },
+  { feature: "Rapports d'audit", basic: "—", premium: "✅", corporate: "✅" },
+  { feature: "Multi-utilisateurs", basic: "—", premium: "—", corporate: "Illimités" },
+  { feature: "Support", basic: "Email 48h", premium: "Prioritaire 24h", corporate: "Dédié" },
+  { feature: "Mises à jour réglementaires", basic: "✅", premium: "✅", corporate: "✅" },
 ];
 
 export default function PricingPage() {
@@ -136,7 +116,7 @@ export default function PricingPage() {
         </div>
 
         {/* Plans */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-24">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 mb-24">
           {PLANS.map((plan) => (
             <div
               key={plan.name}
@@ -155,29 +135,22 @@ export default function PricingPage() {
                 </div>
               )}
 
-              {/* Plan header */}
               <div className="mb-6">
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
                   {plan.name}
                 </div>
                 <div className="text-xs text-slate-500 mb-4">{plan.target}</div>
-
                 <div className="flex items-end gap-1 mb-1">
-                  {plan.priceLabel && (
-                    <span className="text-xs text-slate-500 mb-1">À partir de</span>
-                  )}
                   <span className="text-3xl font-bold text-white">{plan.price} €</span>
                   <span className="text-slate-500 text-sm mb-1">/mois</span>
                 </div>
                 <div className="text-xs text-slate-600">{plan.engagement}</div>
               </div>
 
-              {/* Use cases badge */}
               <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 mb-6">
                 {plan.usecases}
               </div>
 
-              {/* Features */}
               <ul className="space-y-2.5 flex-1 mb-6">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-slate-300">
@@ -193,7 +166,6 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              {/* CTA */}
               <Link
                 href={plan.ctaHref}
                 className={[
@@ -210,19 +182,18 @@ export default function PricingPage() {
         </div>
 
         {/* Tableau comparatif */}
-        <div className="max-w-5xl mx-auto mb-20">
+        <div className="max-w-3xl mx-auto mb-20">
           <h2 className="text-xl font-bold text-white text-center mb-8">
             Comparaison détaillée
           </h2>
-
           <div className="rounded-2xl border border-white/10 overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/3">
+                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/2">
                     Fonctionnalité
                   </th>
-                  {["Basic", "Premium", "Corporate", "Partner"].map((p) => (
+                  {["Basic", "Premium", "Corporate"].map((p) => (
                     <th key={p} className="px-4 py-4 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       {p}
                     </th>
@@ -239,7 +210,7 @@ export default function PricingPage() {
                     ].join(" ")}
                   >
                     <td className="px-5 py-3.5 text-xs text-slate-400">{row.feature}</td>
-                    {[row.basic, row.premium, row.corporate, row.partner].map((val, j) => (
+                    {[row.basic, row.premium, row.corporate].map((val, j) => (
                       <td key={j} className="px-4 py-3.5 text-center text-xs">
                         <span className={
                           val === "✅" ? "text-emerald-500" :
@@ -257,7 +228,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* FAQ / Garanties */}
+        {/* Garanties */}
         <div className="max-w-2xl mx-auto text-center mb-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
