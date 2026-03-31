@@ -71,7 +71,7 @@ export default function LoginClient() {
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 required
-                autoComplete="email"
+                autoComplete="off"
                 placeholder="vous@organisation.fr"
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition"
               />
