@@ -166,6 +166,7 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="marie.dupont@acme.fr"
+              autoComplete="off"
               className={inputClass}
             />
           </div>
@@ -189,6 +190,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 type={showPassword ? "text" : "password"}
                 placeholder="8 caractères minimum"
+                autoComplete="new-password"
                 className={inputClass + " pr-12"}
               />
               <button
@@ -208,6 +210,7 @@ export default function RegisterPage() {
               onChange={(e) => setPasswordConfirm(e.target.value)}
               type={showPassword ? "text" : "password"}
               placeholder="Répétez le mot de passe"
+              autoComplete="new-password"
               className={inputClass}
             />
           </div>
