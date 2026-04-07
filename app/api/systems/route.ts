@@ -15,17 +15,6 @@ async function requireOrg() {
   }
 
   return (session.user as any).organizationId as string;
-  async function requireOrg() {
-  const session = await getServerSession(authOptions);
-
-  console.log("SESSION DEBUG →", session);
-
-  if (!session || !(session.user as any)?.organizationId) {
-    throw new Error("UNAUTHORIZED");
-  }
-
-  return (session.user as any).organizationId as string;
-}
 }
 
 // =====================
@@ -46,6 +35,9 @@ export async function GET() {
         owner: true,
         status: true,
         createdAt: true,
+        _count: {
+          select: { useCases: true },
+        },
       },
     });
 

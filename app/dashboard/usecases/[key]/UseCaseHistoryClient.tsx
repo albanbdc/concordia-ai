@@ -1315,12 +1315,11 @@ if (selectedFile && proofUrl.trim()) {
     </div>
   </div>
 )}
-      {/* Drawer premium */}
       {drawerOpen ? (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={closeDrawer} />
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-black/40" onClick={closeDrawer} />
 
-          <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl flex flex-col">
+    <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
             {/* Header sticky */}
             <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
               <div className="p-4 flex items-start justify-between gap-3">

@@ -45,10 +45,12 @@ async function requireOrg() {
 
 export async function GET(req: Request) {
   try {
+    const organizationId = await requireOrg();
     const url = new URL(req.url);
     const limit = toInt(url.searchParams.get("limit"), 200);
 
     const useCases = await prisma.useCase.findMany({
+      where: { organizationId },
       orderBy: [{ updatedAt: "desc" }],
       take: Math.min(limit, 500),
       select: {
