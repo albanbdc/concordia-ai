@@ -6,7 +6,9 @@
 // - Fallback lastUpdate = ObligationState.updatedAt (si aucun état par cas d’usage)
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";*
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,9 +17,15 @@ function iso(d: Date | null | undefined) {
   return d ? d.toISOString() : null;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    // 1) Catalogue (la liste “officielle” des obligations / articles)
+    const session = await getServerSession(authOptions);
+    const organizationId = (session?.user as any)?.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ ok: false, error: "Non autorisé" }, { status: 401 });
+    }
+
+    // 1) Catalogue
     const catalog = await prisma.obligationCatalog.findMany({
       select: {
         id: true,
@@ -36,6 +44,11 @@ export async function GET() {
 
     // 3) États par cas d’usage (ce qui permet l’agrégation)
     const states = await prisma.useCaseObligationState.findMany({
+      where: {
+        useCase: {
+          organizationId,
+        },
+      },
       select: {
         obligationId: true,
         useCaseKey: true,
