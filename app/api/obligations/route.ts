@@ -5,6 +5,8 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,12 @@ function toIso(d: Date | null | undefined) {
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    const organizationId = (session?.user as any)?.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ ok: false, error: "Non autorisé" }, { status: 401 });
+    }
+
     const url = new URL(req.url);
     const useCaseKey = url.searchParams.get("useCaseKey");
 
@@ -27,10 +35,11 @@ export async function GET(req: Request) {
     // 1) États du registre vivant
     const rows = await prisma.useCaseObligationState.findMany({
       where: {
-  useCase: {
-    key: useCaseKey,
-  },
-},
+        useCase: {
+          key: useCaseKey,
+          organizationId,
+        },
+      },
       orderBy: [{ updatedAt: "desc" }],
       include: {
         history: {
