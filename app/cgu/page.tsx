@@ -232,6 +232,7 @@ export default function CGUPage() {
           <Link href="/cgu" className="hover:text-slate-400 transition">CGU</Link>
           <Link href="/pricing" className="hover:text-slate-400 transition">Tarifs</Link>
           <Link href="/login" className="hover:text-slate-400 transition">Connexion</Link>
+          <Link href="/dpa" className="hover:text-slate-400 transition">DPA</Link>
         </div>
       </footer>
 
