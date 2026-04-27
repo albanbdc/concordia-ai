@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 function safeJsonParse<T = any>(raw: string | null | undefined): T | null {
   if (!raw) return null;
@@ -44,7 +46,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ useCaseKey: st
   try {
     const { useCaseKey } = await ctx.params;
 
-    // On récupère un gros paquet et on filtre (simple, safe)
     const rows = await prisma.audit.findMany({
       orderBy: { createdAt: "desc" },
       take: 2000,
@@ -73,7 +74,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ useCaseKey: st
         (a.useCaseType && String(a.useCaseType)) ||
         input?.system?.useCases?.[0]?.name ||
         input?.system?.name ||
-        "Cas d’usage";
+        "Cas d'usage";
 
       const key = buildUseCaseKey(String(sector), String(title));
       if (key !== useCaseKey) continue;
@@ -96,6 +97,41 @@ export async function GET(_req: Request, ctx: { params: Promise<{ useCaseKey: st
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: "Erreur serveur.", details: e?.message || String(e) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(_req: Request, ctx: { params: Promise<{ useCaseKey: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    const organizationId = (session?.user as any)?.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ ok: false, error: "Non autorisé" }, { status: 401 });
+    }
+
+    const { useCaseKey } = await ctx.params;
+
+    // Vérifier que le use case appartient bien à l'organisation
+    const useCase = await prisma.useCase.findFirst({
+      where: { key: useCaseKey, organizationId },
+      select: { id: true, key: true },
+    });
+
+    if (!useCase) {
+      return NextResponse.json({ ok: false, error: "Cas d'usage introuvable" }, { status: 404 });
+    }
+
+    // Suppression en cascade (obligations, preuves, historique)
+    await prisma.useCase.delete({
+      where: { id: useCase.id },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    console.error("DELETE /api/usecases/[key] error:", e);
+    return NextResponse.json(
+      { ok: false, error: "Erreur serveur", details: e?.message },
       { status: 500 }
     );
   }

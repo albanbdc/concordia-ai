@@ -36,13 +36,6 @@ function prettyDate(iso?: string | null) {
   }
 }
 
-function clampPct(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  if (n < 0) return 0;
-  if (n > 100) return 100;
-  return n;
-}
-
 function normalizeKey(s: string) {
   return String(s || "")
     .trim()
@@ -138,7 +131,6 @@ function UseCaseGauge({ counts }: { counts?: UseCaseItem["counts"] }) {
     );
   }
 
-  // La barre est toujours pleine — seule la couleur change
   const allCompliant = compliant === total;
   const someCompliant = compliant > 0;
 
@@ -186,42 +178,54 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [useCases, setUseCases] = useState<UseCaseItem[]>([]);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/usecases?limit=200", { method: "GET" });
+      const text = await res.text();
+      const data: ApiUseCases = text ? JSON.parse(text) : (null as any);
+      if (!res.ok || !data || (data as any).ok !== true) {
+        throw new Error((data as any)?.error || `Erreur API (${res.status})`);
+      }
+      const list = Array.isArray((data as any).useCases)
+        ? ((data as any).useCases as UseCaseItem[])
+        : [];
+      setUseCases(list);
+    } catch (e: any) {
+      setUseCases([]);
+      setErr(e?.message || "Erreur chargement use cases");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let alive = true;
-
-    async function load() {
-      setLoading(true);
-      setErr(null);
-
-      try {
-        const res = await fetch("/api/usecases?limit=200", { method: "GET" });
-        const text = await res.text();
-        const data: ApiUseCases = text ? JSON.parse(text) : (null as any);
-
-        if (!res.ok || !data || (data as any).ok !== true) {
-          throw new Error((data as any)?.error || `Erreur API (${res.status})`);
-        }
-
-        const list = Array.isArray((data as any).useCases)
-          ? ((data as any).useCases as UseCaseItem[])
-          : [];
-
-        if (!alive) return;
-        setUseCases(list);
-      } catch (e: any) {
-        if (!alive) return;
-        setUseCases([]);
-        setErr(e?.message || "Erreur chargement use cases");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
-      }
-    }
-
     load();
-    return () => { alive = false; };
   }, []);
+
+  async function handleDelete(key: string, title: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Supprimer le cas d'usage "${title}" ? Cette action est irréversible et supprimera toutes les obligations et preuves associées.`)) return;
+
+    setDeletingKey(key);
+    try {
+      const res = await fetch(`/api/usecases/${encodeURIComponent(key)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || "Erreur suppression");
+      await load();
+    } catch (e: any) {
+      alert(e?.message || "Erreur lors de la suppression");
+    } finally {
+      setDeletingKey(null);
+    }
+  }
 
   const stats = useMemo(() => {
     const useCasesCount = useCases.length;
@@ -280,55 +284,73 @@ export default function Page() {
           {useCases.map((uc) => {
             const total = uc.counts?.total ?? 0;
             const compliant = uc.counts?.compliant ?? 0;
+            const isDeleting = deletingKey === uc.key;
 
             return (
-              <Link
-                key={uc.key}
-                href={`/dashboard/usecases/${encodeURIComponent(uc.key)}`}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition hover:-translate-y-[1px]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold uppercase tracking-widest text-slate-700 truncate">
-                      {uc.title}
+              <div key={uc.key} className="relative group">
+                <Link
+                  href={`/dashboard/usecases/${encodeURIComponent(uc.key)}`}
+                  className="block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition hover:-translate-y-[1px]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold uppercase tracking-widest text-slate-700 truncate">
+                        {uc.title}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Mis à jour le{" "}
+                        <span className="font-semibold text-slate-700">
+                          {prettyDate(uc.updatedAt)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Mis à jour le{" "}
-                      <span className="font-semibold text-slate-700">
-                        {prettyDate(uc.updatedAt)}
-                      </span>
+                    <div className="pt-0.5">
+                      <SectorBadge sector={uc.sector} />
                     </div>
                   </div>
-                  <div className="pt-0.5">
-                    <SectorBadge sector={uc.sector} />
-                  </div>
-                </div>
 
-                <div className="mt-4 flex items-end justify-between">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Conformes
+                  <div className="mt-4 flex items-end justify-between">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Conformes
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-slate-900">
+                        {compliant}
+                      </div>
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-900">
-                      {compliant}
+                    <div className="text-right">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Obligations
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-slate-900">
+                        {total}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Obligations
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-900">
-                      {total}
-                    </div>
+
+                  <UseCaseGauge counts={uc.counts} />
+
+                  <div className="mt-5 text-xs font-semibold uppercase tracking-wider text-slate-600 group-hover:text-slate-800">
+                    Voir le dossier →
                   </div>
-                </div>
+                </Link>
 
-                <UseCaseGauge counts={uc.counts} />
-
-                <div className="mt-5 text-xs font-semibold uppercase tracking-wider text-slate-600 group-hover:text-slate-800">
-                  Voir le dossier →
-                </div>
-              </Link>
+                {/* Bouton suppression */}
+                <button
+                  type="button"
+                  onClick={(e) => handleDelete(uc.key, uc.title, e)}
+                  disabled={isDeleting}
+                  className={[
+                    "absolute top-3 right-3 rounded-lg border px-2 py-1.5 text-xs font-semibold transition",
+                    "opacity-0 group-hover:opacity-100",
+                    isDeleting
+                      ? "border-rose-200 bg-rose-50 text-rose-400 opacity-100"
+                      : "border-rose-200 bg-white text-rose-500 hover:bg-rose-50",
+                  ].join(" ")}
+                >
+                  {isDeleting ? "Suppression…" : "🗑"}
+                </button>
+              </div>
             );
           })}
         </div>
